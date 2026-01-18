@@ -1,0 +1,258 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { FirebaseService } from '../../shared/firebase/firebase.service';
+import { RedisService } from '../../shared/redis/redis.service';
+import { ParticipantService } from './services/participant.service';
+import { CreateJourneyDto } from './dto/create-journey.dto';
+import { UpdateJourneyDto } from './dto/update-journey.dto';
+import { Journey } from '../../shared/interfaces/journey.interface';
+import { JourneyStatus } from '../../types/journey-status.type';
+import { FieldValue, GeoPoint } from 'firebase-admin/firestore';
+
+@Injectable()
+export class JourneyService {
+  constructor(
+    private firebaseService: FirebaseService,
+    private redisService: RedisService,
+    private participantService: ParticipantService,
+    private configService: ConfigService,
+  ) {}
+
+  async create(userId: string, createJourneyDto: CreateJourneyDto): Promise<Journey> {
+    const journeyRef = this.firebaseService.firestore.collection('journeys').doc();
+
+    const journeyData = {
+      name: createJourneyDto.name,
+      leaderId: userId,
+      status: 'PENDING' as const,
+      destination: createJourneyDto.destination
+        ? new GeoPoint(
+            createJourneyDto.destination.latitude,
+            createJourneyDto.destination.longitude,
+          )
+        : undefined,
+      destinationAddress: createJourneyDto.destinationAddress,
+      lagThresholdMeters:
+        createJourneyDto.lagThresholdMeters ||
+        this.configService.get('app.defaultLagThresholdMeters') ||
+        500,
+      createdAt: FieldValue.serverTimestamp() as any,
+      updatedAt: FieldValue.serverTimestamp() as any,
+      metadata: {},
+    };
+
+    await journeyRef.set(journeyData);
+
+    // Add creator as leader participant
+    await this.participantService.addParticipant(journeyRef.id, userId, userId, 'LEADER');
+
+    return { id: journeyRef.id, ...journeyData } as Journey;
+  }
+
+  async findById(journeyId: string): Promise<Journey> {
+    const journeyDoc = await this.firebaseService.firestore
+      .collection('journeys')
+      .doc(journeyId)
+      .get();
+
+    if (!journeyDoc.exists) {
+      throw new NotFoundException('Journey not found');
+    }
+
+    return { id: journeyDoc.id, ...journeyDoc.data() } as Journey;
+  }
+
+  async update(
+    journeyId: string,
+    userId: string,
+    updateJourneyDto: UpdateJourneyDto,
+  ): Promise<Journey> {
+    const journey = await this.findById(journeyId);
+
+    if (journey.leaderId !== userId) {
+      throw new ForbiddenException('Only leader can update journey');
+    }
+
+    if (journey.status !== 'PENDING') {
+      throw new BadRequestException('Can only update pending journeys');
+    }
+
+    const updateData: any = {
+      ...updateJourneyDto,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (updateJourneyDto.destination) {
+      updateData.destination = new GeoPoint(
+        updateJourneyDto.destination.latitude,
+        updateJourneyDto.destination.longitude,
+      );
+    }
+
+    await this.firebaseService.firestore
+      .collection('journeys')
+      .doc(journeyId)
+      .update(updateData);
+
+    return this.findById(journeyId);
+  }
+
+  async delete(journeyId: string, userId: string): Promise<void> {
+    const journey = await this.findById(journeyId);
+
+    if (journey.leaderId !== userId) {
+      throw new ForbiddenException('Only leader can delete journey');
+    }
+
+    if (journey.status === 'ACTIVE') {
+      throw new BadRequestException('Cannot delete active journey');
+    }
+
+    await this.firebaseService.firestore
+      .collection('journeys')
+      .doc(journeyId)
+      .update({
+        status: 'CANCELLED',
+        endTime: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+  }
+
+  async start(journeyId: string, userId: string): Promise<Journey> {
+    const journey = await this.findById(journeyId);
+
+    if (journey.leaderId !== userId) {
+      throw new ForbiddenException('Only leader can start journey');
+    }
+
+    if (journey.status !== 'PENDING') {
+      throw new BadRequestException('Journey already started or completed');
+    }
+
+    await this.firebaseService.firestore
+      .collection('journeys')
+      .doc(journeyId)
+      .update({
+        status: 'ACTIVE',
+        startTime: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+    // Update all accepted participants to active
+    const participants = await this.participantService.getJourneyParticipants(journeyId);
+    const updates = participants
+      .filter((p) => p.status === 'ACCEPTED' || p.role === 'LEADER')
+      .map((p) =>
+        this.firebaseService.firestore
+          .collection('journeys')
+          .doc(journeyId)
+          .collection('participants')
+          .doc(p.userId)
+          .update({ status: 'ACTIVE' }),
+      );
+
+    await Promise.all(updates);
+
+    // Add to active journeys in Redis
+    await this.redisService.addActiveJourney(journeyId);
+
+    // Cache participants in Redis
+    const activeParticipants = participants.filter(
+      (p) => p.status === 'ACCEPTED' || p.role === 'LEADER',
+    );
+    for (const participant of activeParticipants) {
+      await this.redisService.addParticipantToJourney(journeyId, participant.userId);
+    }
+
+    return this.findById(journeyId);
+  }
+
+  async end(journeyId: string, userId: string): Promise<Journey> {
+    const journey = await this.findById(journeyId);
+
+    if (journey.leaderId !== userId) {
+      throw new ForbiddenException('Only leader can end journey');
+    }
+
+    if (journey.status !== 'ACTIVE') {
+      throw new BadRequestException('Journey is not active');
+    }
+
+    await this.firebaseService.firestore
+      .collection('journeys')
+      .doc(journeyId)
+      .update({
+        status: 'COMPLETED',
+        endTime: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+    // Remove from active journeys in Redis
+    await this.redisService.removeActiveJourney(journeyId);
+
+    return this.findById(journeyId);
+  }
+
+  async inviteParticipant(
+    journeyId: string,
+    userId: string,
+    invitedUserId: string,
+  ): Promise<void> {
+    const journey = await this.findById(journeyId);
+
+    if (journey.leaderId !== userId) {
+      throw new ForbiddenException('Only leader can invite participants');
+    }
+
+    if (journey.status !== 'PENDING') {
+      throw new BadRequestException('Can only invite to pending journeys');
+    }
+
+    await this.participantService.addParticipant(journeyId, invitedUserId, userId);
+  }
+
+  async getUserActiveJourneys(userId: string): Promise<Journey[]> {
+    const snapshot = await this.firebaseService.firestore
+      .collectionGroup('participants')
+      .where('userId', '==', userId)
+      .where('status', 'in', ['ACTIVE', 'ACCEPTED'])
+      .get();
+
+    const journeyIds = new Set(
+      snapshot.docs
+        .map((doc) => doc.ref.parent.parent?.id)
+        .filter((id): id is string => id !== undefined),
+    );
+    const journeys: Journey[] = [];
+
+    for (const journeyId of journeyIds) {
+      const journey = await this.findById(journeyId);
+      if (journey.status === 'ACTIVE') {
+        journeys.push(journey);
+      }
+    }
+
+    return journeys;
+  }
+
+  async getJourneyWithParticipants(journeyId: string, userId: string) {
+    const journey = await this.findById(journeyId);
+    const isParticipant = await this.participantService.isParticipant(journeyId, userId);
+
+    if (!isParticipant) {
+      throw new ForbiddenException('Not a participant of this journey');
+    }
+
+    const participants = await this.participantService.getJourneyParticipants(journeyId);
+
+    return {
+      ...journey,
+      participants,
+    };
+  }
+}
