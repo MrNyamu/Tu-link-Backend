@@ -34,6 +34,20 @@ export class NotificationController {
    * Get unread notification count
    */
   @Get('unread-count')
+  @ApiOperation({
+    summary: 'Get unread notification count',
+    description: 'Get the count of unread notifications for the current user'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Unread count retrieved successfully',
+    schema: {
+      example: {
+        count: 5
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUnreadCount(@CurrentUser('uid') userId: string) {
     const count = await this.notificationService.getUnreadCount(userId);
     return { count };
@@ -44,6 +58,23 @@ export class NotificationController {
    */
   @Put(':journeyId/:notificationId/read')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mark notification as read',
+    description: 'Mark a specific notification as read'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification marked as read successfully',
+    schema: {
+      example: {
+        success: true,
+        statusCode: 200,
+        message: 'Notification marked as read'
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
   async markAsRead(
     @Param('journeyId') journeyId: string,
     @Param('notificationId') notificationId: string,
@@ -55,8 +86,30 @@ export class NotificationController {
   /**
    * Delete notification
    */
+<<<<<<< Updated upstream
   @Delete(':journeyId/:notificationId')
   @HttpCode(HttpStatus.NO_CONTENT)
+=======
+  @Delete(':notificationId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete notification',
+    description: 'Delete a specific notification from user\'s notification list'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification deleted successfully',
+    schema: {
+      example: {
+        success: true,
+        statusCode: 200,
+        message: 'Notification deleted successfully'
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Notification not found' })
+>>>>>>> Stashed changes
   async deleteNotification(
     @Param('journeyId') journeyId: string,
     @Param('notificationId') notificationId: string,

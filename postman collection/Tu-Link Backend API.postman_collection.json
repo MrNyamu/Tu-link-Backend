@@ -1,1069 +1,2630 @@
 {
-	"info": {
-		"_postman_id": "2bb00b3b-30e5-4f85-94c0-cda517a8f8ed",
-		"name": "Tu-Link Backend API",
-		"description": "Complete API collection for Tu-Link convoy coordination backend.\n\n## Setup Instructions:\n1. Import this collection into Postman\n2. Set up environment variables (see Variables tab)\n3. Start with Auth → Register or Login to get a token\n4. Token will be automatically saved and used in subsequent requests\n\n## Authentication Flow:\n1. **Register** - Create new account (returns token)\n2. **Login** - Authenticate with credentials (returns token)\n3. **Refresh Token** - Get new token before expiration (1 hour)\n4. **Logout** - Revoke all tokens\n\nTokens are automatically saved to `authToken` variable and used in all protected endpoints.\n\n## Testing Flow:\n1. Register users (leader and followers) OR login with existing accounts\n2. Create a journey (as leader)\n3. Invite participants\n4. Participants accept invitations\n5. Start journey\n6. Send location updates\n7. View notifications and analytics\n8. End journey\n9. Logout when done",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "34030642"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"item": [
-				{
-					"name": "Register User",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Save token automatically from new response format",
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    if (response.success && response.data) {",
-									"        pm.environment.set('authToken', response.data.tokens.customToken);",
-									"        pm.environment.set('userId', response.data.user.uid);",
-									"        pm.environment.set('userEmail', response.data.user.email);",
-									"        console.log('✅ Token saved:', response.data.tokens.customToken);",
-									"        console.log('✅ User ID:', response.data.user.uid);",
-									"        console.log('✅ Token expires in:', response.data.tokens.expiresIn, 'seconds');",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"leader@test.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Leader User\",\n  \"phoneNumber\": \"+1234567890\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/register",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"register"
-							]
-						},
-						"description": "Register a new user. This will be the journey leader.\n\nThe token will be automatically saved to the environment variable `authToken`."
-					},
-					"response": []
-				},
-				{
-					"name": "Register User (Follower 1)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    if (response.success && response.data) {",
-									"        pm.environment.set('follower1Token', response.data.tokens.customToken);",
-									"        pm.environment.set('follower1Id', response.data.user.uid);",
-									"        console.log('✅ Follower 1 Token saved');",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"follower1@test.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Follower One\",\n  \"phoneNumber\": \"+1234567891\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/register",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"register"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Register User (Follower 2)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    if (response.success && response.data) {",
-									"        pm.environment.set('follower2Token', response.data.tokens.customToken);",
-									"        pm.environment.set('follower2Id', response.data.user.uid);",
-									"        console.log('✅ Follower 2 Token saved');",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"follower2@test.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Follower Two\",\n  \"phoneNumber\": \"+1234567892\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/register",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"register"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Login User",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Save token automatically from login response",
-									"if (pm.response.statusCode === 200) {",
-									"    const response = pm.response.json();",
-									"    if (response.success && response.data) {",
-									"        pm.environment.set('authToken', response.data.tokens.idToken);",
-									"        pm.environment.set('userId', response.data.user.uid);",
-									"        pm.environment.set('userEmail', response.data.user.email);",
-									"        console.log('✅ Login successful');",
-									"        console.log('✅ Token saved:', response.data.tokens.idToken);",
-									"        console.log('✅ Token expires in:', response.data.tokens.expiresIn, 'seconds');",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"testmonkey@test.com\",\n    \"password\": \"password123\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"login"
-							]
-						},
-						"description": "Login with existing credentials and receive authentication token.\n\nThe token will be automatically saved to the environment variable `authToken`."
-					},
-					"response": []
-				},
-				{
-					"name": "Refresh Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Save new token from refresh response",
-									"if (pm.response.code === 200) {",
-									"    const response = pm.response.json();",
-									"    if (response.success && response.data) {",
-									"        pm.environment.set('authToken', response.data.customToken);",
-									"        console.log('✅ Token refreshed successfully');",
-									"        console.log('✅ New token expires in:', response.data.expiresIn, 'seconds');",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/auth/refresh",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"refresh"
-							]
-						},
-						"description": "Refresh the authentication token.\n\nRequires valid authentication token. The new token will be automatically saved."
-					},
-					"response": []
-				},
-				{
-					"name": "Logout",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/auth/logout",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"logout"
-							]
-						},
-						"description": "Logout and revoke all refresh tokens for the current user.\n\nRequires authentication token."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Profile",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/auth/profile",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"profile"
-							]
-						},
-						"description": "Get the current user's profile.\n\nRequires authentication token."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Profile",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"displayName\": \"Updated Name\",\n  \"phoneNumber\": \"+1234567890\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/profile",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"profile"
-							]
-						},
-						"description": "Update the current user's profile."
-					},
-					"response": []
-				}
-			],
-			"description": "Authentication endpoints with complete token management.\n\n**Available Endpoints:**\n- **Register** - Create account and receive token\n- **Login** - Authenticate and receive token\n- **Refresh Token** - Get new token (tokens expire after 1 hour)\n- **Logout** - Revoke all tokens\n- **Get Profile** - View user profile (protected)\n- **Update Profile** - Update user information (protected)\n\n**Token Management:**\n- Tokens are Firebase custom tokens\n- Expire after 3600 seconds (1 hour)\n- Automatically saved to `authToken` variable\n- Used in Authorization header for protected endpoints\n\n**Phone Numbers:**\nMust be in E.164 format: `+[country code][number]`\nExamples: `+254712345678` (Kenya), `+1234567890` (US)"
-		},
-		{
-			"name": "Journeys",
-			"item": [
-				{
-					"name": "Create Journey",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    pm.environment.set('journeyId', response.id);",
-									"    console.log('✅ Journey ID saved:', response.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Road Trip to NYC\",\n  \"destination\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  },\n  \"destinationAddress\": \"New York, NY, USA\",\n  \"lagThresholdMeters\": 500\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/journeys",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys"
-							]
-						},
-						"description": "Create a new journey. The authenticated user becomes the leader.\n\nThe journey ID will be automatically saved."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Active Journeys",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/journeys/active",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"active"
-							]
-						},
-						"description": "Get all active journeys where the user is a participant."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Journey Details",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}"
-							]
-						},
-						"description": "Get details of a specific journey including participants."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Pending Invitations",
-					"request": {
-						"method": "GET",
-						"header": []
-					},
-					"response": []
-				},
-				{
-					"name": "Update Journey",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Updated Journey Name\",\n  \"lagThresholdMeters\": 600\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}"
-							]
-						},
-						"description": "Update journey details. Only the leader can update."
-					},
-					"response": []
-				},
-				{
-					"name": "Invite Participant",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"invitedUserId\": \"{{follower1Id}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}/invite",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}",
-								"invite"
-							]
-						},
-						"description": "Invite a user to join the journey. Only the leader can invite."
-					},
-					"response": []
-				},
-				{
-					"name": "Accept Invitation",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{follower1Token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}/accept",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}",
-								"accept"
-							]
-						},
-						"description": "Accept a journey invitation. Use the follower's token.\n\nNote: This request uses `follower1Token` instead of `authToken`."
-					},
-					"response": []
-				},
-				{
-					"name": "Start Journey",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}/start",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}",
-								"start"
-							]
-						},
-						"description": "Start the journey. Only the leader can start.\n\nThis changes status from PENDING to ACTIVE."
-					},
-					"response": []
-				},
-				{
-					"name": "End Journey",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}/end",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}",
-								"end"
-							]
-						},
-						"description": "End the journey. Only the leader can end.\n\nThis changes status from ACTIVE to COMPLETED."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Journey",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/journeys/{{journeyId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"journeys",
-								"{{journeyId}}"
-							]
-						},
-						"description": "Delete (cancel) a journey. Only the leader can delete.\n\nCannot delete active journeys."
-					},
-					"response": []
-				}
-			],
-			"description": "Journey management endpoints for creating, updating, and managing convoys."
-		},
-		{
-			"name": "Locations",
-			"item": [
-				{
-					"name": "Send Location Update (REST)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"journeyId\": \"{{journeyId}}\",\n  \"location\": {\n    \"latitude\": 40.7589,\n    \"longitude\": -73.9851\n  },\n  \"accuracy\": 10.5,\n  \"altitude\": 50.0,\n  \"heading\": 90.0,\n  \"speed\": 15.5,\n  \"metadata\": {\n    \"batteryLevel\": 75,\n    \"isMoving\": true\n  }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/locations",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"locations"
-							]
-						},
-						"description": "Send a location update via REST (fallback when WebSocket unavailable).\n\nNote: WebSocket is preferred for real-time updates."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Location History",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/locations/journeys/{{journeyId}}/history?limit=100",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"locations",
-								"journeys",
-								"{{journeyId}}",
-								"history"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "100"
-								}
-							]
-						},
-						"description": "Get location history for a journey.\n\nReturns the last 100 location updates (configurable via limit parameter)."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Latest Locations",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/locations/journeys/{{journeyId}}/latest",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"locations",
-								"journeys",
-								"{{journeyId}}",
-								"latest"
-							]
-						},
-						"description": "Get the latest location for all participants in a journey.\n\nReturns a map of participantId -> LocationUpdate."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Participant Location History",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/locations/journeys/{{journeyId}}/participants/{{participantId}}?limit=50",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"locations",
-								"journeys",
-								"{{journeyId}}",
-								"participants",
-								"{{participantId}}"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "50"
-								}
-							]
-						},
-						"description": "Get location history for a specific participant.\n\nYou need to set `participantId` variable first."
-					},
-					"response": []
-				}
-			],
-			"description": "Location tracking endpoints. REST fallback for WebSocket.\n\nNote: WebSocket is the primary method for sending location updates in real-time."
-		},
-		{
-			"name": "Notifications",
-			"item": [
-				{
-					"name": "Get User Notifications",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/notifications?limit=50",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"notifications"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "50"
-								}
-							]
-						},
-						"description": "Get all notifications for the current user.\n\nReturns journey invites, lag alerts, arrival notifications, etc."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Unread Count",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/notifications/unread-count",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"notifications",
-								"unread-count"
-							]
-						},
-						"description": "Get count of unread notifications for the current user."
-					},
-					"response": []
-				},
-				{
-					"name": "Mark as Read",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/notifications/{{journeyId}}/{{notificationId}}/read",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"notifications",
-								"{{journeyId}}",
-								"{{notificationId}}",
-								"read"
-							]
-						},
-						"description": "Mark a notification as read.\n\nYou need to set `notificationId` variable first."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Notification",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/notifications/{{journeyId}}/{{notificationId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"notifications",
-								"{{journeyId}}",
-								"{{notificationId}}"
-							]
-						},
-						"description": "Delete a notification.\n\nYou need to set `notificationId` variable first."
-					},
-					"response": []
-				}
-			],
-			"description": "Notification management endpoints for viewing and managing notifications."
-		},
-		{
-			"name": "Analytics",
-			"item": [
-				{
-					"name": "Get Journey Analytics",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/analytics/journeys/{{journeyId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"analytics",
-								"journeys",
-								"{{journeyId}}"
-							]
-						},
-						"description": "Get analytics for a completed journey.\n\nIncludes: total distance, average speed, lag alerts, etc."
-					},
-					"response": []
-				},
-				{
-					"name": "Get User Journey History",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/analytics/user?limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"analytics",
-								"user"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "20"
-								}
-							]
-						},
-						"description": "Get all journeys the user has participated in with analytics.\n\nReturns journey data with embedded analytics."
-					},
-					"response": []
-				}
-			],
-			"description": "Analytics endpoints for journey statistics and user history."
-		},
-		{
-			"name": "Maps",
-			"item": [
-				{
-					"name": "Geocode Address",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"address\": \"Times Square, New York, NY\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/maps/geocode",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"maps",
-								"geocode"
-							]
-						},
-						"description": "Convert an address to latitude/longitude coordinates.\n\nUses Google Maps Geocoding API."
-					},
-					"response": []
-				},
-				{
-					"name": "Reverse Geocode",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"latitude\": 40.7589,\n  \"longitude\": -73.9851\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/maps/reverse-geocode",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"maps",
-								"reverse-geocode"
-							]
-						},
-						"description": "Convert latitude/longitude to a human-readable address.\n\nUses Google Maps Reverse Geocoding API."
-					},
-					"response": []
-				},
-				{
-					"name": "Calculate Distance",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origin\": {\n    \"latitude\": 40.7589,\n    \"longitude\": -73.9851\n  },\n  \"destination\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/maps/distance",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"maps",
-								"distance"
-							]
-						},
-						"description": "Calculate distance and duration between two points.\n\nUses Haversine formula for distance, Google Maps Distance Matrix API for route distance."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Directions",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"origin\": {\n    \"latitude\": 40.7589,\n    \"longitude\": -73.9851\n  },\n  \"destination\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  }\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}/maps/directions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"maps",
-								"directions"
-							]
-						},
-						"description": "Get turn-by-turn directions between two points.\n\nUses Google Maps Directions API."
-					},
-					"response": []
-				}
-			],
-			"description": "Google Maps integration endpoints for geocoding, distance calculations, and directions."
-		},
-		{
-			"name": "Health Check",
-			"item": [
-				{
-					"name": "Health Check",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								""
-							]
-						},
-						"description": "Check if the server is running.\n\nNo authentication required."
-					},
-					"response": []
-				},
-				{
-					"name": "Swagger Docs",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api"
-							]
-						},
-						"description": "View Swagger API documentation.\n\nOpen in browser for interactive docs."
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{authToken}}",
-				"type": "string"
-			}
-		]
-	},
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:3000",
-			"type": "string"
-		},
-		{
-			"key": "authToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "userId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "journeyId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "follower1Token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "follower1Id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "follower2Token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "follower2Id",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "participantId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "notificationId",
-			"value": "",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "2bb00b3b-30e5-4f85-94c0-cda517a8f8ed",
+    "name": "Tu-Link Backend API",
+    "description": "Complete API collection for Tu-Link convoy coordination backend.\n\n## Setup Instructions:\n1. Import this collection into Postman\n2. Set up environment variables (see Variables tab)\n3. Start with Auth → Register or Login to get a token\n4. Token will be automatically saved and used in subsequent requests\n\n## Authentication Flow:\n1. **Register** - Create new account (returns token)\n2. **Login** - Authenticate with credentials (returns token)\n3. **Refresh Token** - Get new token before expiration (1 hour)\n4. **Logout** - Revoke all tokens\n\nTokens are automatically saved to `authToken` variable and used in all protected endpoints.\n\n## Testing Flow:\n1. Register users (leader and followers) OR login with existing accounts\n2. Create a journey (as leader)\n3. Invite participants\n4. Participants accept invitations\n5. Start journey\n6. Send location updates\n7. View notifications and analytics\n8. End journey\n9. Logout when done",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "34030642"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    if (response.success && response.data) {",
+                  "        pm.environment.set('authToken', response.data.tokens.authToken);",
+                  "        pm.environment.set('userId', response.data.user.uid);",
+                  "        pm.environment.set('userEmail', response.data.user.email);",
+                  "         pm.environment.set(\"refreshToken\", response.data.tokens.refreshToken);",
+                  "    }  console.log(\"Environment variables saved successfully\");",
+                  "} else {",
+                  "    console.warn(\"Status code not 200, variables not saved\");",
+                  "}",
+                  "",
+                  "",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"leader@tes.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Leader User\",\n  \"phoneNumber\": \"+254785592584\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user. This will be the journey leader.\n\nThe token will be automatically saved to the environment variable `authToken`."
+          },
+          "response": []
+        },
+        {
+          "name": "Register User (Follower 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.environment.set('follower1Token', response.data.tokens.customToken);",
+                  "        pm.environment.set('follower1Id', response.data.user.uid);",
+                  "        console.log('✅ Follower 1 Token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"follower1@test.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Follower One\",\n  \"phoneNumber\": \"+1234567891\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.statusCode === 200) {",
+                  "    pm.environment.set(\"authToken\", response.data.tokens.idToken);",
+                  "    pm.environment.set(\"userId\", response.data.user.uid);",
+                  "    pm.environment.set(\"userEmail\", response.data.user.email);",
+                  "    pm.environment.set(\"refreshToken\", response.data.tokens.refreshToken);",
+                  "    console.log(\"Environment variables saved successfully\");",
+                  "} else {",
+                  "    console.warn(\"Status code not 200, variables not saved\");",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"follower1@test.com\",\n    \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with existing credentials and receive authentication token.\n\nThe token will be automatically saved to the environment variable `authToken`."
+          },
+          "response": [
+            {
+              "name": "Login User",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"follower1@test.com\",\n    \"password\": \"password123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1578"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"62a-TDf97+Y4kHiKORbsrbtTO8lr1fk\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 22 Jan 2026 20:32:08 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"statusCode\": 200,\n    \"message\": \"Operation completed successfully\",\n    \"data\": {\n        \"user\": {\n            \"uid\": \"N8BPeJvNBMZIdjGMVpMOhxBH5f13\",\n            \"email\": \"follower1@test.com\",\n            \"displayName\": \"Follower One\",\n            \"phoneNumber\": \"+254722519316\",\n            \"emailVerified\": false\n        },\n        \"tokens\": {\n            \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6IjFjMzIxOTgzNGRhNTBlMjBmYWVhZWE3Yzg2Y2U3YjU1MzhmMTdiZTEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRm9sbG93ZXIgT25lIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3R1bGluay1hcHAtMWE5NDIiLCJhdWQiOiJ0dWxpbmstYXBwLTFhOTQyIiwiYXV0aF90aW1lIjoxNzY5MTEzOTI3LCJ1c2VyX2lkIjoiTjhCUGVKdk5CTVpJZGpHTVZwTU9oeEJINWYxMyIsInN1YiI6Ik44QlBlSnZOQk1aSWRqR01WcE1PaHhCSDVmMTMiLCJpYXQiOjE3NjkxMTM5MjcsImV4cCI6MTc2OTExNzUyNywiZW1haWwiOiJmb2xsb3dlcjFAdGVzdC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInBob25lX251bWJlciI6IisyNTQ3MjI1MTkzMTYiLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImZvbGxvd2VyMUB0ZXN0LmNvbSJdLCJwaG9uZSI6WyIrMjU0NzIyNTE5MzE2Il19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.Yk3G0wAJJ3wTOMEav6nPmgLPchx2tHefI02f85NZR2YXZ0AAguwsbgbhmvlHw4c9ielG5wOuOmmBDKFdMTiJy1v-wjKr277Cup7CrhX36kZeuxguIFi_4prneeqtKKGPz8tG-eiEcnZqa3p0zJtcNHzJ0FKJjHsANVW0a0O1EwHnKgVWbmXH66O1fZin5MXQGs1C1Lp4eT3GLpZbyAtZFgsGA5ds1NzmMkpJinaE9LU-25o43obnXtO2zTqdxebvfKibYCuu7kwJpz9-R8Ee4qp_lcUE6P1kQSjNezNKPL-SqC00ato2elPCpuyB3LCcsNttsRd2IeRTrEwq4xmKxA\",\n            \"refreshToken\": \"AMf-vByAw953sT4hgBiy6UqYD6qpHHKZn1mqnPF690ZdBL-uq4Ff9Cy8oQy6EPS6dUSShRCJbGb-8OICiOxhViEX_llOIvPoIrBfurFar-kE2r4cVYuObk5YFpmy5SrARmr_5aOM1ABN9QTMo-7ltJL_nctfDPEpjCqhOVoxuE0GucaE4vmyyTv9kpzkNqJ_yaWLSV-CGCUI0FIddlpyXrj7-4looRCw1vk_tgykXuLUGLe_vLaMxC0\",\n            \"expiresIn\": 3600\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login Follower 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.statusCode === 200) {",
+                  "    // pm.environment.set(\"authToken\", response.data.tokens.idToken);",
+                  "    pm.environment.set(\"follower1Id\", response.data.user.uid);",
+                  "    pm.environment.set(\"follower1Email\", response.data.user.email);",
+                  "    console.log(\"Environment variables saved successfully\");",
+                  "} else {",
+                  "    console.warn(\"Status code not 200, variables not saved\");",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"follower1@test.com\",\n    \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with existing credentials and receive authentication token.\n\nThe token will be automatically saved to the environment variable `authToken`."
+          },
+          "response": [
+            {
+              "name": "Login Follower 1",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"follower1@test.com\",\n    \"password\": \"password123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1578"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"62a-U4aLZv7l99Dun7Y8kHdg8RbzEx8\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 22 Jan 2026 20:41:38 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"statusCode\": 200,\n    \"message\": \"Operation completed successfully\",\n    \"data\": {\n        \"user\": {\n            \"uid\": \"N8BPeJvNBMZIdjGMVpMOhxBH5f13\",\n            \"email\": \"follower1@test.com\",\n            \"displayName\": \"Follower One\",\n            \"phoneNumber\": \"+254722519316\",\n            \"emailVerified\": false\n        },\n        \"tokens\": {\n            \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6IjFjMzIxOTgzNGRhNTBlMjBmYWVhZWE3Yzg2Y2U3YjU1MzhmMTdiZTEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRm9sbG93ZXIgT25lIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3R1bGluay1hcHAtMWE5NDIiLCJhdWQiOiJ0dWxpbmstYXBwLTFhOTQyIiwiYXV0aF90aW1lIjoxNzY5MTE0NDk4LCJ1c2VyX2lkIjoiTjhCUGVKdk5CTVpJZGpHTVZwTU9oeEJINWYxMyIsInN1YiI6Ik44QlBlSnZOQk1aSWRqR01WcE1PaHhCSDVmMTMiLCJpYXQiOjE3NjkxMTQ0OTgsImV4cCI6MTc2OTExODA5OCwiZW1haWwiOiJmb2xsb3dlcjFAdGVzdC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInBob25lX251bWJlciI6IisyNTQ3MjI1MTkzMTYiLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImZvbGxvd2VyMUB0ZXN0LmNvbSJdLCJwaG9uZSI6WyIrMjU0NzIyNTE5MzE2Il19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.KdHGOwufgIGtdbEWvcdvX5cnrvOWIBX3C1lpXqHSJRn21Pf5PEswO_9aw1taC2yJEXP2IfRJ9egvF5Hv9dGabrJVD0Ixm7qLfFkYSc-h5FVixmJbjtuMVMfaw0oHxlw2f5QuSinLxnVIAVVhE7JWRcnC2rA8C48BJh4XWgfJNd5iqjFn57I2QG1sKJvT--CAsa55M1KPFPT5ccsDFJ-oWr3QG-r17MauQbYEbZ1UnWez4o_mmKqS6pMrURsWNNz-DKNKfhDEx7jyGaKXlNeGL1N_yJM-m6C184gyT-UE_Wej4u_envvM31CmpiiJZ2hrKkTjbXIuhlKCweHTmidfTA\",\n            \"refreshToken\": \"AMf-vBznf3_QuEcYzSWHoeKtv3Kdao4RwOIGsxJm_Mj6hlEno_pLJfNV8BYa0-bBMvghMVXbtzniEqRrgX-fvtp9s7KkE5nQbt6KhvWImF4H3hheq_G2_Jm913cKTerUuYTtsTgioxJ6pxLJM_VrwjHHpSRIM22UI6uu-t3CmLLfQ5MU-e8-FAWdCOV4XyxbBgTneFw_AyIvl2Cq68LO2aD8ZWg4GJsBy-Oru5A64rsZqFql1wN1C5A\",\n            \"expiresIn\": 3600\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save new token from refresh response",
+                  "",
+                  "const response = pm.response.json();",
+                  "if (pm.response.code === 200) {",
+                  "    if (response.success && response.data) {",
+                  "        pm.environment.set('refreshToken', response.data.refreshToken);",
+                  "    }",
+                  "   ",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Refresh the authentication token.\n\nRequires valid authentication token. The new token will be automatically saved."
+          },
+          "response": [
+            {
+              "name": "Refresh Token",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "1411"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"583-4sQC7SKH8L38LZjHZpZmv2XxWYo\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 22 Jan 2026 20:31:24 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"statusCode\": 200,\n    \"message\": \"Operation completed successfully\",\n    \"data\": {\n        \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6IjFjMzIxOTgzNGRhNTBlMjBmYWVhZWE3Yzg2Y2U3YjU1MzhmMTdiZTEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRm9sbG93ZXIgT25lIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3R1bGluay1hcHAtMWE5NDIiLCJhdWQiOiJ0dWxpbmstYXBwLTFhOTQyIiwiYXV0aF90aW1lIjoxNzY5MTEzODc3LCJ1c2VyX2lkIjoiTjhCUGVKdk5CTVpJZGpHTVZwTU9oeEJINWYxMyIsInN1YiI6Ik44QlBlSnZOQk1aSWRqR01WcE1PaHhCSDVmMTMiLCJpYXQiOjE3NjkxMTM4ODQsImV4cCI6MTc2OTExNzQ4NCwiZW1haWwiOiJmb2xsb3dlcjFAdGVzdC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInBob25lX251bWJlciI6IisyNTQ3MjI1MTkzMTYiLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImZvbGxvd2VyMUB0ZXN0LmNvbSJdLCJwaG9uZSI6WyIrMjU0NzIyNTE5MzE2Il19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.BgvnILNt7RFVMUWA76IiLu-Vzk86x9qK9WCiJgicWoBvOvuTXS2SADSB66NL_qhv4EQTRiIJpkDylchq0UDFDdP5E7xGbQT9FnOsmz1wbbqGJj_DKgHmxXU0oxGdEyKNh52oNUb31JsuBo_3vGWSp11JPCzdo2bnZBz2pw6Qa_VZqN-YdZN9MhQqmbDKixV2QNWbQko0T6LR3Xqi-fg0M9AIKPBlz9r8d5-a25fRYxZJmanviZZPgm7EDSgxKBxiytbPHe36XgncUhNn4JnnHFgiMXXf7PPak-UYWBOh4KQrQaw1YyoTGDe0Wogvl1Y9HpdnCwHx66D1sMGXpAomSw\",\n        \"refreshToken\": \"AMf-vBwyS02sft4iehqqHMZcqwmfIOVK0GpA-WirJ1gkv9lObxFlvRrbt2W67UYzc_Wy-zi-jfVjJxqQBz7FBlVWiay9CnhHTQ-it9uUNywVg2hqtnZepNuSjBK57X5N_ennNm2qHD3ynnj_nMpzQvD4yYfsYlbuJRIRrOSDl15aknGnzURFT5EzVQRxMICcDf3eeRt-Z9096KciK2pdQphQby2lbthDETJ6TU9LbpHQUN7PajimKAA\",\n        \"expiresIn\": 3600\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout and revoke all refresh tokens for the current user.\n\nRequires authentication token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "Get the current user's profile.\n\nRequires authentication token."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Updated Name\",\n  \"phoneNumber\": \"+1234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "Update the current user's profile."
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints with complete token management.\n\n**Available Endpoints:**\n- **Register** - Create account and receive token\n- **Login** - Authenticate and receive token\n- **Refresh Token** - Get new token (tokens expire after 1 hour)\n- **Logout** - Revoke all tokens\n- **Get Profile** - View user profile (protected)\n- **Update Profile** - Update user information (protected)\n\n**Token Management:**\n- Tokens are Firebase custom tokens\n- Expire after 3600 seconds (1 hour)\n- Automatically saved to `authToken` variable\n- Used in Authorization header for protected endpoints\n\n**Phone Numbers:**\nMust be in E.164 format: `+[country code][number]`\nExamples: `+254712345678` (Kenya), `+1234567890` (US)"
+    },
+    {
+      "name": "Journeys",
+      "item": [
+        {
+          "name": "Create Journey",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.statusCode === 201 && response.success == true) {",
+                  "    pm.environment.set(\"journeyId\", response.data.id)",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Road Trip to NYC\",\n  \"destination\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  },\n  \"destinationAddress\": \"New York, NY, USA\",\n  \"lagThresholdMeters\": 500\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/journeys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys"
+              ]
+            },
+            "description": "Create a new journey. The authenticated user becomes the leader.\n\nThe journey ID will be automatically saved."
+          },
+          "response": [
+            {
+              "name": "Create Journey",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Road Trip to NYC\",\n  \"destination\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  },\n  \"destinationAddress\": \"New York, NY, USA\",\n  \"lagThresholdMeters\": 500\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/journeys",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "journeys"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "366"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"16e-fOQhStq065OEfwJ5J20sSANCvA4\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 22 Jan 2026 20:39:23 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"statusCode\": 201,\n    \"message\": \"Resource created successfully\",\n    \"data\": {\n        \"id\": \"ViWAOl7xmmXw287d85U9\",\n        \"name\": \"Road Trip to NYC\",\n        \"leaderId\": \"N8BPeJvNBMZIdjGMVpMOhxBH5f13\",\n        \"status\": \"PENDING\",\n        \"destination\": {\n            \"_latitude\": 40.7128,\n            \"_longitude\": -74.006\n        },\n        \"destinationAddress\": \"New York, NY, USA\",\n        \"lagThresholdMeters\": 500,\n        \"createdAt\": {},\n        \"updatedAt\": {},\n        \"metadata\": {}\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active Journeys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/journeys/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "active"
+              ]
+            },
+            "description": "Get all active journeys where the user is a participant."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Journey Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}"
+              ]
+            },
+            "description": "Get details of a specific journey including participants."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Invitations",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "Update Journey",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFjMzIxOTgzNGRhNTBlMjBmYWVhZWE3Yzg2Y2U3YjU1MzhmMTdiZTEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRm9sbG93ZXIgT25lIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3R1bGluay1hcHAtMWE5NDIiLCJhdWQiOiJ0dWxpbmstYXBwLTFhOTQyIiwiYXV0aF90aW1lIjoxNzY4ODA5MDExLCJ1c2VyX2lkIjoiTjhCUGVKdk5CTVpJZGpHTVZwTU9oeEJINWYxMyIsInN1YiI6Ik44QlBlSnZOQk1aSWRqR01WcE1PaHhCSDVmMTMiLCJpYXQiOjE3Njg4MDkwMTEsImV4cCI6MTc2ODgxMjYxMSwiZW1haWwiOiJmb2xsb3dlcjFAdGVzdC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInBob25lX251bWJlciI6IisyNTQ3MjI1MTkzMTYiLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImZvbGxvd2VyMUB0ZXN0LmNvbSJdLCJwaG9uZSI6WyIrMjU0NzIyNTE5MzE2Il19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.BrDi6ecuT18RM3tue27EP1p1HK3jzfX_vssebuVqPLAMHnPw9BFBuaUd5WNROrdF5a1GuBbw2q00L6UpkCkKra_f8P5n2stficVof1ICSAnhkzrx7QeFz8pwl3OmmFuKwdLFLi2EU3VnmczU1LdbtfHiXv0Igfcnmmnpe3bEE0K1qHSD0znR7FlmCdeHe89MOXd71RCeQn6MMLnMZw4tU3eiXBqxmug9huRMrpukJ0svQUudD7BcLscrHT0gdfwvlysNORJO2wb3a-bkSfZ1F2KDx9hahtxtT7Q29pJHRGISWrKOJBzakBFxghh1TllMf7oD8D_lKRPqPujCkYpFlg",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Trip to Northern Kenya Mandera\",\n   \"destination\": {\n    \"latitude\": 3.9356,\n    \"longitude\": 41.8551\n  },\n  \"destinationAddress\": \"41.8551\",\n    \"lagThresholdMeters\": 600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}"
+              ]
+            },
+            "description": "Update journey details. Only the leader can update."
+          },
+          "response": []
+        },
+        {
+          "name": "Invite Participant",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invitedUserId\": \"{{follower1Id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}",
+                "invite"
+              ]
+            },
+            "description": "Invite a user to join the journey. Only the leader can invite."
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{follower1Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}",
+                "accept"
+              ]
+            },
+            "description": "Accept a journey invitation. Use the follower's token.\n\nNote: This request uses `follower1Token` instead of `authToken`."
+          },
+          "response": []
+        },
+        {
+          "name": "Start Journey",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}",
+                "start"
+              ]
+            },
+            "description": "Start the journey. Only the leader can start.\n\nThis changes status from PENDING to ACTIVE."
+          },
+          "response": []
+        },
+        {
+          "name": "End Journey",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}/end",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}",
+                "end"
+              ]
+            },
+            "description": "End the journey. Only the leader can end.\n\nThis changes status from ACTIVE to COMPLETED."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Journey",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/journeys/{{journeyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "journeys",
+                "{{journeyId}}"
+              ]
+            },
+            "description": "Delete (cancel) a journey. Only the leader can delete.\n\nCannot delete active journeys."
+          },
+          "response": []
+        }
+      ],
+      "description": "Journey management endpoints for creating, updating, and managing convoys."
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "Send Location Update (REST)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"journeyId\": \"{{journeyId}}\",\n  \"location\": {\n    \"latitude\": 40.7589,\n    \"longitude\": -73.9851\n  },\n  \"accuracy\": 10.5,\n  \"altitude\": 50.0,\n  \"heading\": 90.0,\n  \"speed\": 15.5,\n  \"metadata\": {\n    \"batteryLevel\": 75,\n    \"isMoving\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            },
+            "description": "Send a location update via REST (fallback when WebSocket unavailable).\n\nNote: WebSocket is preferred for real-time updates."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Location History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/journeys/{{journeyId}}/history?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "journeys",
+                "{{journeyId}}",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Get location history for a journey.\n\nReturns the last 100 location updates (configurable via limit parameter)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Latest Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/journeys/{{journeyId}}/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "journeys",
+                "{{journeyId}}",
+                "latest"
+              ]
+            },
+            "description": "Get the latest location for all participants in a journey.\n\nReturns a map of participantId -> LocationUpdate."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Participant Location History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/journeys/{{journeyId}}/participants/{{participantId}}?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "journeys",
+                "{{journeyId}}",
+                "participants",
+                "{{participantId}}"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Get location history for a specific participant.\n\nYou need to set `participantId` variable first."
+          },
+          "response": []
+        }
+      ],
+      "description": "Location tracking endpoints. REST fallback for WebSocket.\n\nNote: WebSocket is the primary method for sending location updates in real-time."
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Register FCM Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"{{fcmToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/fcm-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "fcm-token"
+              ]
+            },
+            "description": "Register FCM token for push notifications.\n\nYou need to set `fcmToken` variable with a valid Firebase Cloud Messaging token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFjMzIxOTgzNGRhNTBlMjBmYWVhZWE3Yzg2Y2U3YjU1MzhmMTdiZTEiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiRm9sbG93ZXIgT25lIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3R1bGluay1hcHAtMWE5NDIiLCJhdWQiOiJ0dWxpbmstYXBwLTFhOTQyIiwiYXV0aF90aW1lIjoxNzY4ODUyMzA4LCJ1c2VyX2lkIjoiTjhCUGVKdk5CTVpJZGpHTVZwTU9oeEJINWYxMyIsInN1YiI6Ik44QlBlSnZOQk1aSWRqR01WcE1PaHhCSDVmMTMiLCJpYXQiOjE3Njg4NTIzMDgsImV4cCI6MTc2ODg1NTkwOCwiZW1haWwiOiJmb2xsb3dlcjFAdGVzdC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInBob25lX251bWJlciI6IisyNTQ3MjI1MTkzMTYiLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImZvbGxvd2VyMUB0ZXN0LmNvbSJdLCJwaG9uZSI6WyIrMjU0NzIyNTE5MzE2Il19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.BQGp4NWO4D6EDiS6i40kcN-I_LJR6S5rPceQOogcp2Oj3As4Y4A96z7VIw1qqynTpmUFC_dBkq-skZz_Vjfoctv11yRGImFQa-bVCvv9h2vm1SpZud6nuRXZijz6-I1paJoUZ-rdenZuCXzXM9xPbLemOMr-jv1I5T-urgeLpMFmj0cZxzb7MPgqlEOcBMDq3n-pyjNIOm_MYi6OwGZh5wEE8R2JsbeJF7e_-Ihsmz0IK1xoVlJcyXNn3N4E4OeeiGRNJX0oocJFvIu77KRfg6P3qCiN6t8AVoUWi9a_3fEBNJCXM2L2dmTAzdz3f2zhP9hei_-s3Cq-M9gVgs83Mw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Get all notifications for the current user.\n\nReturns journey invites, lag alerts, arrival notifications, etc."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            },
+            "description": "Get count of unread notifications for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": "Mark a notification as read.\n\nYou need to set `notificationId` variable first."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}"
+              ]
+            },
+            "description": "Delete a notification.\n\nYou need to set `notificationId` variable first."
+          },
+          "response": []
+        }
+      ],
+      "description": "Notification management endpoints for viewing and managing notifications."
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Journey Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/analytics/journeys/{{journeyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "journeys",
+                "{{journeyId}}"
+              ]
+            },
+            "description": "Get analytics for a completed journey.\n\nIncludes: total distance, average speed, lag alerts, etc."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Journey History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/analytics/user?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "analytics",
+                "user"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all journeys the user has participated in with analytics.\n\nReturns journey data with embedded analytics."
+          },
+          "response": []
+        }
+      ],
+      "description": "Analytics endpoints for journey statistics and user history."
+    },
+    {
+      "name": "Maps (Mapbox)",
+      "item": [
+        {
+          "name": "Geocoding",
+          "item": [
+            {
+              "name": "Search Places",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const response = pm.response.json();",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "    if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {",
+                      "        const firstPlace = response.data[0];",
+                      "        if (firstPlace.id) {",
+                      "            pm.environment.set('placeId', firstPlace.id);",
+                      "            console.log('✅ Place ID saved:', firstPlace.id);",
+                      "        }",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"{{sampleQuery}}\",\n  \"proximity\": {{nycCoords}},\n  \"bbox\": {{nycBbox}},\n  \"countries\": [\"US\"],\n  \"types\": [\"place\", \"address\"],\n  \"limit\": 5,\n  \"autocomplete\": true,\n  \"language\": \"{{defaultLanguage}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/geocoding/search",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "geocoding",
+                    "search"
+                  ]
+                },
+                "description": "Search for places using forward geocoding with various filters and options.\n\nSupports proximity bias, bounding box filtering, country restrictions, and feature type filtering."
+              },
+              "response": []
+            },
+            {
+              "name": "Reverse Geocode",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coordinates\": {{nycCoords}},\n  \"types\": [\"place\", \"address\"],\n  \"language\": \"{{defaultLanguage}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/geocoding/reverse",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "geocoding",
+                    "reverse"
+                  ]
+                },
+                "description": "Convert geographic coordinates to a human-readable address.\n\nReturns the best matching address for the given coordinates with optional feature type filtering."
+              },
+              "response": []
+            },
+            {
+              "name": "Batch Geocode",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"queries\": [\n    \"Times Square, NYC\",\n    \"Central Park, New York\",\n    \"Brooklyn Bridge, NY\",\n    \"Statue of Liberty, NYC\"\n  ],\n  \"proximity\": [-74.006, 40.7128],\n  \"countries\": [\"US\"],\n  \"types\": [\"place\", \"poi\"],\n  \"language\": \"en\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/geocoding/batch",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "geocoding",
+                    "batch"
+                  ]
+                },
+                "description": "Geocode multiple addresses in a single request for improved efficiency.\n\nLimited to 10 queries per batch. Returns results in the same order as input queries."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Place Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/geocoding/places/{{placeId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "geocoding",
+                    "places",
+                    "{{placeId}}"
+                  ]
+                },
+                "description": "Retrieve detailed information about a specific place using its Mapbox place ID.\n\nPlace IDs are returned from other geocoding endpoints and provide persistent reference to locations."
+              },
+              "response": []
+            },
+            {
+              "name": "Search Nearby",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"center\": [-74.006, 40.7128],\n  \"radius\": 5000,\n  \"query\": \"restaurant\",\n  \"types\": [\"poi\"],\n  \"limit\": 10\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/geocoding/nearby",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "geocoding",
+                    "nearby"
+                  ]
+                },
+                "description": "Search for places within a specified radius of a center point.\n\nUseful for finding nearby restaurants, gas stations, or other points of interest during a journey."
+              },
+              "response": []
+            },
+            {
+              "name": "Autocomplete",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"Times Sq\",\n  \"proximity\": [-74.006, 40.7128],\n  \"countries\": [\"US\"],\n  \"types\": [\"place\", \"address\"],\n  \"limit\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/geocoding/autocomplete",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "geocoding",
+                    "autocomplete"
+                  ]
+                },
+                "description": "Get autocomplete suggestions for partial search queries.\n\nPerfect for implementing real-time search suggestions as users type destination addresses."
+              },
+              "response": []
+            }
+          ],
+          "description": "Geocoding endpoints for converting between addresses and coordinates using Mapbox Geocoding API."
+        },
+        {
+          "name": "Routing",
+          "item": [
+            {
+              "name": "Calculate Route",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"waypoints\": [\n    {{nycCoords}},\n    {{timesSquareCoords}},\n    {{centralParkCoords}}\n  ],\n  \"profile\": \"{{defaultProfile}}\",\n  \"alternatives\": true,\n  \"steps\": true,\n  \"geometries\": \"geojson\",\n  \"overview\": \"full\",\n  \"continue_straight\": false,\n  \"annotations\": [\"duration\", \"distance\", \"speed\"],\n  \"language\": \"{{defaultLanguage}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/calculate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "calculate"
+                  ]
+                },
+                "description": "Calculate detailed route between multiple waypoints with customizable options.\n\nSupports driving, walking, cycling profiles. Returns turn-by-turn instructions, geometry, and detailed annotations."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Alternative Routes",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origin\": [-74.006, 40.7128],\n  \"destination\": [-73.9857, 40.7484],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/alternatives",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "alternatives"
+                  ]
+                },
+                "description": "Get multiple route options between two points for user choice.\n\nReturns up to 3 alternative routes with different characteristics (fastest, shortest, scenic)."
+              },
+              "response": []
+            },
+            {
+              "name": "Optimize Route",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"waypoints\": [\n    [-74.006, 40.7128],\n    [-73.9857, 40.7484],\n    [-73.9442, 40.8176],\n    [-74.0059, 40.7589],\n    [-73.9776, 40.7831]\n  ],\n  \"profile\": \"driving\",\n  \"roundTrip\": false,\n  \"source\": \"first\",\n  \"destination\": \"last\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/optimize",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "optimize"
+                  ]
+                },
+                "description": "Optimize the order of waypoints to minimize total travel time/distance.\n\nUseful for convoy routes with multiple stops or pickup points along the way."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Traffic Route",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"waypoints\": [\n    [-74.006, 40.7128],\n    [-73.9857, 40.7484]\n  ],\n  \"departureTime\": \"2024-01-24T15:30:00.000Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/traffic",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "traffic"
+                  ]
+                },
+                "description": "Get traffic-aware route with real-time congestion data.\n\nConsiders current or predicted traffic conditions for the specified departure time."
+              },
+              "response": []
+            },
+            {
+              "name": "Match Route",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coordinates\": [\n    [-74.006, 40.7128],\n    [-74.007, 40.7135],\n    [-74.008, 40.7142],\n    [-74.009, 40.7149],\n    [-74.010, 40.7156]\n  ],\n  \"timestamps\": [\n    \"2024-01-24T10:00:00.000Z\",\n    \"2024-01-24T10:01:00.000Z\",\n    \"2024-01-24T10:02:00.000Z\",\n    \"2024-01-24T10:03:00.000Z\",\n    \"2024-01-24T10:04:00.000Z\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/match",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "match"
+                  ]
+                },
+                "description": "Match GPS coordinates to the road network for clean route visualization.\n\nUseful for cleaning up GPS traces from convoy participants and snapping them to actual roads."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Route ETA",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origin\": [-74.006, 40.7128],\n  \"destination\": [-73.9857, 40.7484],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/eta",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "eta"
+                  ]
+                },
+                "description": "Get quick ETA calculation between two points without full route details.\n\nOptimized for performance when only arrival time is needed."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Batch Route ETAs",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origins\": [\n    [-74.006, 40.7128],\n    [-73.9857, 40.7484],\n    [-74.0059, 40.7589]\n  ],\n  \"destination\": [-73.9442, 40.8176],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/routing/batch-etas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "routing",
+                    "batch-etas"
+                  ]
+                },
+                "description": "Calculate ETAs from multiple origin points to a single destination.\n\nEfficient for calculating arrival times for all convoy participants to the destination."
+              },
+              "response": []
+            }
+          ],
+          "description": "Routing endpoints for calculating routes, ETAs, and optimizing waypoint order using Mapbox Directions API."
+        },
+        {
+          "name": "Matrix",
+          "item": [
+            {
+              "name": "Get Distance Matrix",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origins\": [\n    [-74.006, 40.7128],\n    [-73.9857, 40.7484]\n  ],\n  \"destinations\": [\n    [-73.9442, 40.8176],\n    [-74.0059, 40.7589]\n  ],\n  \"profile\": \"driving\",\n  \"annotations\": [\"distance\", \"duration\"],\n  \"fallback_speed\": 25\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/distance",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "distance"
+                  ]
+                },
+                "description": "Calculate a matrix of distances and durations between multiple origins and destinations.\n\nUseful for analyzing convoy spread and finding optimal regrouping points."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Journey ETAs",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"participants\": [\n    {\n      \"participantId\": \"{{userId}}\",\n      \"location\": [-74.006, 40.7128]\n    },\n    {\n      \"participantId\": \"{{follower1Id}}\",\n      \"location\": [-73.9857, 40.7484]\n    }\n  ],\n  \"destination\": [-73.9442, 40.8176]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/etas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "etas"
+                  ]
+                },
+                "description": "Calculate ETAs for all participants in a journey to the destination.\n\nReturns a mapping of participant IDs to their estimated arrival times."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Batch ETAs",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"journeyGroups\": [\n    {\n      \"groupId\": \"journey1\",\n      \"participants\": [\n        {\n          \"participantId\": \"{{userId}}\",\n          \"location\": [-74.006, 40.7128]\n        },\n        {\n          \"participantId\": \"{{follower1Id}}\",\n          \"location\": [-73.9857, 40.7484]\n        }\n      ],\n      \"destination\": [-73.9442, 40.8176]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/batch-etas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "batch-etas"
+                  ]
+                },
+                "description": "Calculate ETAs for multiple journey groups efficiently in a single request.\n\nUseful for processing multiple active journeys simultaneously."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Distance Between",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origin\": [-74.006, 40.7128],\n  \"destination\": [-73.9857, 40.7484],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/distance-between",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "distance-between"
+                  ]
+                },
+                "description": "Get precise distance and duration between two specific points.\n\nOptimized for simple point-to-point calculations without matrix overhead."
+              },
+              "response": []
+            },
+            {
+              "name": "Find Nearest Point",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"target\": [-74.006, 40.7128],\n  \"candidates\": [\n    [-73.9857, 40.7484],\n    [-73.9442, 40.8176],\n    [-74.0059, 40.7589],\n    [-73.9776, 40.7831]\n  ],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/nearest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "nearest"
+                  ]
+                },
+                "description": "Find the closest point from a list of candidates to a target location.\n\nUseful for finding the nearest convoy member or closest rendezvous point."
+              },
+              "response": []
+            },
+            {
+              "name": "Calculate Lag Distance",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentPosition\": [-74.008, 40.7135],\n  \"expectedPosition\": [-74.006, 40.7128],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/lag-distance",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "lag-distance"
+                  ]
+                },
+                "description": "Calculate the lag distance between current position and expected position on route.\n\nUsed by the lag detection system to determine if a participant is falling behind."
+              },
+              "response": []
+            },
+            {
+              "name": "Check Within Radius",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"center\": [-74.006, 40.7128],\n  \"point\": [-74.008, 40.7135],\n  \"radiusMeters\": 1000,\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/radius-check",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "radius-check"
+                  ]
+                },
+                "description": "Check if a point is within a specified radius of a center point.\n\nUseful for proximity alerts and geofencing around convoy members."
+              },
+              "response": []
+            },
+            {
+              "name": "Rank by Proximity",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"target\": [-74.006, 40.7128],\n  \"points\": [\n    {\n      \"id\": \"participant1\",\n      \"coordinates\": [-73.9857, 40.7484]\n    },\n    {\n      \"id\": \"participant2\",\n      \"coordinates\": [-73.9442, 40.8176]\n    },\n    {\n      \"id\": \"participant3\",\n      \"coordinates\": [-74.0059, 40.7589]\n    }\n  ],\n  \"profile\": \"driving\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/matrix/rank-proximity",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "matrix",
+                    "rank-proximity"
+                  ]
+                },
+                "description": "Rank multiple points by their proximity to a target location.\n\nUseful for convoy formation analysis and determining convoy order."
+              },
+              "response": []
+            }
+          ],
+          "description": "Matrix calculation endpoints for distance/duration analysis between multiple points using Mapbox Matrix API."
+        },
+        {
+          "name": "Navigation",
+          "item": [
+            {
+              "name": "Start Navigation",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const response = pm.response.json();",
+                      "",
+                      "if (pm.response.code === 200 || pm.response.code === 201) {",
+                      "    if (response.success && response.data && response.data.sessionId) {",
+                      "        pm.environment.set('navigationSessionId', response.data.sessionId);",
+                      "        console.log('✅ Navigation session ID saved:', response.data.sessionId);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origin\": [-74.006, 40.7128],\n  \"destination\": [-73.9857, 40.7484],\n  \"profile\": \"driving\",\n  \"voice\": true,\n  \"banner\": true,\n  \"language\": \"en\",\n  \"units\": \"metric\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "start"
+                  ]
+                },
+                "description": "Start a new turn-by-turn navigation session with voice guidance.\n\nReturns a session ID for tracking navigation progress and updates."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Navigation",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentLocation\": [-74.007, 40.7135],\n  \"heading\": 45.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/{{navigationSessionId}}/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "{{navigationSessionId}}",
+                    "update"
+                  ]
+                },
+                "description": "Update navigation progress with current location and heading.\n\nReturns updated turn-by-turn instructions and remaining distance/time."
+              },
+              "response": []
+            },
+            {
+              "name": "Pause Navigation",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/{{navigationSessionId}}/pause",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "{{navigationSessionId}}",
+                    "pause"
+                  ]
+                },
+                "description": "Pause an active navigation session temporarily.\n\nNavigation can be resumed later from the same point."
+              },
+              "response": []
+            },
+            {
+              "name": "Resume Navigation",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/{{navigationSessionId}}/resume",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "{{navigationSessionId}}",
+                    "resume"
+                  ]
+                },
+                "description": "Resume a previously paused navigation session.\n\nContinues navigation from where it was paused."
+              },
+              "response": []
+            },
+            {
+              "name": "End Navigation",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/{{navigationSessionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "{{navigationSessionId}}"
+                  ]
+                },
+                "description": "End navigation session successfully upon reaching destination.\n\nReturns navigation summary with total distance, duration, and statistics."
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Navigation",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/{{navigationSessionId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "{{navigationSessionId}}",
+                    "cancel"
+                  ]
+                },
+                "description": "Cancel navigation session before reaching destination.\n\nReturns partial summary of the navigation session before cancellation."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Voice Instructions",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{navigationSessionId}}\",\n  \"distanceToManeuver\": 150\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/voice-instructions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "voice-instructions"
+                  ]
+                },
+                "description": "Get voice instructions for current position in navigation.\n\nReturns audio cues and spoken instructions for the next maneuver."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Active Navigation Sessions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/active",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "active"
+                  ]
+                },
+                "description": "Get all active navigation sessions for the current user.\n\nReturns list of ongoing navigation sessions with basic status information."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Navigation Statistics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation/statistics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation",
+                    "statistics"
+                  ]
+                },
+                "description": "Get overall navigation usage statistics.\n\nReturns metrics like active sessions, completed sessions, average duration, and total distance."
+              },
+              "response": []
+            }
+          ],
+          "description": "Navigation endpoints for turn-by-turn guidance and voice instructions using Mapbox Navigation API."
+        },
+        {
+          "name": "Optimized Navigation",
+          "item": [
+            {
+              "name": "Start Optimized Navigation",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const response = pm.response.json();",
+                      "",
+                      "if (pm.response.code === 200 || pm.response.code === 201) {",
+                      "    if (response.success && response.data && response.data.sessionId) {",
+                      "        pm.environment.set('optimizedNavigationSessionId', response.data.sessionId);",
+                      "        console.log('✅ Optimized navigation session ID saved:', response.data.sessionId);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origin\": {{nycCoords}},\n  \"destination\": {{timesSquareCoords}},\n  \"options\": {\n    \"profile\": \"{{defaultProfile}}\",\n    \"voice\": true,\n    \"language\": \"{{defaultLanguage}}\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation-optimized/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation-optimized",
+                    "start"
+                  ]
+                },
+                "description": "Start optimized navigation with chunked data loading for real-time driving.\n\nReturns session ID and initial route chunk with compressed geometry."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Optimized Navigation",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentLocation\": {{nycCoords}},\n  \"heading\": 45,\n  \"speed\": 13.89,\n  \"requestNextChunk\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation-optimized/{{optimizedNavigationSessionId}}/update",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation-optimized",
+                    "{{optimizedNavigationSessionId}}",
+                    "update"
+                  ]
+                },
+                "description": "Update optimized navigation with current location and minimal data transfer.\n\nReturns progress, next instruction, and optional route chunk."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Route Chunk",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentIndex\": 50,\n  \"lookAhead\": 50,\n  \"includeVoice\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation-optimized/{{optimizedNavigationSessionId}}/chunk",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation-optimized",
+                    "{{optimizedNavigationSessionId}}",
+                    "chunk"
+                  ]
+                },
+                "description": "Get next route chunk for progressive loading during navigation.\n\nReturns compressed route geometry and instructions for specified range."
+              },
+              "response": []
+            },
+            {
+              "name": "End Optimized Navigation",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/navigation-optimized/{{optimizedNavigationSessionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "navigation-optimized",
+                    "{{optimizedNavigationSessionId}}"
+                  ]
+                },
+                "description": "End optimized navigation session and clean up cached route data.\n\nUse this when navigation is completed or cancelled."
+              },
+              "response": []
+            }
+          ],
+          "description": "Optimized navigation endpoints for real-time driving with efficient data handling, chunked loading, and minimal bandwidth usage."
+        },
+        {
+          "name": "Journey Visualization",
+          "item": [
+            {
+              "name": "Get Journey Visualization",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"journeyId\": \"{{journeyId}}\",\n  \"includeRoute\": true,\n  \"includeETA\": true,\n  \"viewport\": {{nycBbox}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/journey-visualization",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "journey-visualization"
+                  ]
+                },
+                "description": "Get real-time visualization of all drivers in a journey with their profile photos, locations, status, and ETAs.\n\nPerfect for the frontend map view showing multiple drivers during convoy navigation."
+              },
+              "response": []
+            },
+            {
+              "name": "Track Specific Driver",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"journeyId\": \"{{journeyId}}\",\n  \"participantId\": \"{{participantId}}\",\n  \"historyCount\": 10\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/driver-tracking",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "driver-tracking"
+                  ]
+                },
+                "description": "Track a specific driver with detailed information including location history, profile photo, route to destination, and real-time status.\n\nUseful for focusing on a particular driver or showing detailed driver information in a popup."
+              },
+              "response": []
+            }
+          ],
+          "description": "Journey visualization endpoints for displaying multiple drivers on maps with profiles, real-time locations, and convoy status during navigation."
+        },
+        {
+          "name": "Utilities",
+          "item": [
+            {
+              "name": "Get Usage Statistics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/usage/statistics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "usage",
+                    "statistics"
+                  ]
+                },
+                "description": "Get Mapbox API usage statistics and rate limiting information.\n\nReturns current usage counts, limits, and remaining quota for different API endpoints."
+              },
+              "response": []
+            },
+            {
+              "name": "Health Check",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/maps/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "health"
+                  ]
+                },
+                "description": "Check the health status of the Maps service.\n\nReturns service status and connectivity to external Mapbox APIs."
+              },
+              "response": []
+            },
+            {
+              "name": "Validate Coordinates",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coordinates\": [\n    [-74.006, 40.7128],\n    [-73.9857, 40.7484],\n    [200, 100],\n    [-73.9442, 40.8176]\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/maps/validate/coordinates",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "maps",
+                    "validate",
+                    "coordinates"
+                  ]
+                },
+                "description": "Validate an array of coordinate pairs for proper lat/lng format.\n\nReturns validation results with indices of any invalid coordinates."
+              },
+              "response": []
+            }
+          ],
+          "description": "Utility endpoints for Maps service management, health checks, and coordinate validation."
+        }
+      ],
+      "description": "Comprehensive Mapbox integration endpoints for geocoding, routing, navigation, and matrix calculations.\n\n**Categories:**\n- **Geocoding** - Address/coordinate conversion and place search\n- **Routing** - Route calculation, optimization, and ETAs\n- **Matrix** - Distance/duration calculations between multiple points\n- **Navigation** - Turn-by-turn navigation with voice guidance\n- **Utilities** - Service health, usage stats, and validation\n\n**Features:**\n- Real-time traffic awareness\n- Multiple transportation profiles (driving, walking, cycling)\n- Voice-guided navigation\n- Route optimization for multiple waypoints\n- Batch processing for multiple requests\n- Comprehensive error handling and validation"
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            },
+            "description": "Check if the server is running.\n\nNo authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "Swagger Docs",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api"
+              ]
+            },
+            "description": "View Swagger API documentation.\n\nOpen in browser for interactive docs."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "name": "WebSocket Testing",
+      "item": [
+        {
+          "name": "WebSocket Connection Guide",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{wsUrl}}",
+              "host": [
+                "{{wsUrl}}"
+              ]
+            },
+            "description": "WebSocket connection testing guide and examples.\n\n## Setup:\n1. Use a WebSocket client (like Socket.IO client or browser WebSockets)\n2. Connect to: {{wsUrl}}\n3. Include authToken in connection headers or query params\n\n## Connection Example (Socket.IO Client):\n```javascript\nconst socket = io('ws://localhost:3000', {\n  auth: {\n    token: 'your-auth-token-here'\n  }\n});\n\nsocket.on('connect', () => {\n  console.log('Connected to WebSocket');\n});\n```\n\n## Events to Listen For:\n- `journey-update`: Journey status changes\n- `location-update`: Real-time location updates\n- `participant-joined`: New participant joined\n- `participant-left`: Participant left journey\n- `lag-alert`: Driver lagging behind\n- `notification`: New notification received\n\n## Events to Emit:\n- `join-journey`: Join journey room\n- `leave-journey`: Leave journey room\n- `location-update`: Send location update\n- `typing`: User typing indicator\n\nRefer to the Flutter documentation for complete WebSocket integration examples."
+          },
+          "response": []
+        },
+        {
+          "name": "Socket.IO Events Reference",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/socket-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "socket-events"
+              ]
+            },
+            "description": "Reference for all available Socket.IO events.\n\n## Client → Server Events:\n\n### Join Journey Room\n```javascript\nsocket.emit('join-journey', {\n  journeyId: 'journey-123',\n  userId: 'user-456'\n});\n```\n\n### Send Location Update\n```javascript\nsocket.emit('location-update', {\n  journeyId: 'journey-123',\n  userId: 'user-456',\n  location: {\n    latitude: 40.7589,\n    longitude: -73.9851,\n    heading: 45,\n    speed: 25,\n    timestamp: new Date().toISOString()\n  }\n});\n```\n\n### Leave Journey\n```javascript\nsocket.emit('leave-journey', {\n  journeyId: 'journey-123',\n  userId: 'user-456'\n});\n```\n\n## Server → Client Events:\n\n### Real-time Location Updates\n```javascript\nsocket.on('location-update', (data) => {\n  // data contains: participantId, location, timestamp\n  console.log('Location update:', data);\n});\n```\n\n### Journey Status Changes\n```javascript\nsocket.on('journey-update', (data) => {\n  // data contains: journeyId, status, updatedBy\n  console.log('Journey updated:', data);\n});\n```\n\n### Participant Events\n```javascript\nsocket.on('participant-joined', (data) => {\n  console.log('New participant:', data);\n});\n\nsocket.on('participant-left', (data) => {\n  console.log('Participant left:', data);\n});\n```\n\n### Lag Alerts\n```javascript\nsocket.on('lag-alert', (data) => {\n  // data contains: participantId, distanceBehind, estimatedDelay\n  console.log('Lag alert:', data);\n});\n```\n\n### Notifications\n```javascript\nsocket.on('notification', (data) => {\n  // data contains: type, title, body, data\n  console.log('New notification:', data);\n});\n```"
+          },
+          "response": []
+        }
+      ],
+      "description": "WebSocket connection testing and real-time event documentation for Socket.IO integration."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "journeyId",
+      "value": ""
+    },
+    {
+      "key": "follower1Token",
+      "value": ""
+    },
+    {
+      "key": "follower1Id",
+      "value": ""
+    },
+    {
+      "key": "follower2Token",
+      "value": ""
+    },
+    {
+      "key": "follower2Id",
+      "value": ""
+    },
+    {
+      "key": "participantId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "navigationSessionId",
+      "value": ""
+    },
+    {
+      "key": "fcmToken",
+      "value": "",
+      "description": "Firebase Cloud Messaging token for push notifications"
+    },
+    {
+      "key": "wsUrl",
+      "value": "ws://localhost:3000",
+      "description": "WebSocket URL for real-time connections"
+    },
+    {
+      "key": "stagingUrl",
+      "value": "https://staging.tulink.app",
+      "description": "Staging environment base URL"
+    },
+    {
+      "key": "prodUrl",
+      "value": "https://api.tulink.app",
+      "description": "Production environment base URL"
+    },
+    {
+      "key": "placeId",
+      "value": ""
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "follower1Email",
+      "value": ""
+    },
+    {
+      "key": "nycCoords",
+      "value": "[-74.006, 40.7128]",
+      "description": "New York City coordinates [lng, lat]"
+    },
+    {
+      "key": "nycLng",
+      "value": "-74.006",
+      "description": "New York City longitude"
+    },
+    {
+      "key": "nycLat",
+      "value": "40.7128",
+      "description": "New York City latitude"
+    },
+    {
+      "key": "timesSquareCoords",
+      "value": "[-73.9857, 40.7484]",
+      "description": "Times Square coordinates [lng, lat]"
+    },
+    {
+      "key": "centralParkCoords",
+      "value": "[-73.9442, 40.8176]",
+      "description": "Central Park coordinates [lng, lat]"
+    },
+    {
+      "key": "brooklynBridgeCoords",
+      "value": "[-74.0059, 40.7589]",
+      "description": "Brooklyn Bridge coordinates [lng, lat]"
+    },
+    {
+      "key": "lincolnCenterCoords",
+      "value": "[-73.9776, 40.7831]",
+      "description": "Lincoln Center coordinates [lng, lat]"
+    },
+    {
+      "key": "nycBbox",
+      "value": "[-74.1, 40.6, -73.9, 40.8]",
+      "description": "NYC bounding box [minLng, minLat, maxLng, maxLat]"
+    },
+    {
+      "key": "sampleQuery",
+      "value": "Times Square, New York",
+      "description": "Sample search query for geocoding"
+    },
+    {
+      "key": "defaultProfile",
+      "value": "driving",
+      "description": "Default routing profile"
+    },
+    {
+      "key": "defaultLanguage",
+      "value": "en",
+      "description": "Default language for responses"
+    },
+    {
+      "key": "optimizedNavigationSessionId",
+      "value": "",
+      "description": "Session ID for optimized navigation"
+    }
+  ]
 }

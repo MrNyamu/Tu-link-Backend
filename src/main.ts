@@ -41,41 +41,74 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Tu-Link Backend API')
     .setDescription(
-      `Complete API for Tu-Link convoy coordination backend with real-time location tracking.
+      `Complete API for Tu-Link convoy coordination platform - enabling groups to travel together safely and efficiently.
 
-## Features
-- **Real-time Location Tracking**: WebSocket-based location updates with REST fallback
-- **Journey Management**: Create, manage, and coordinate convoy journeys
-- **User Authentication**: Firebase Auth integration with token management
-- **Notifications**: Journey invitations, lag alerts, and arrival detection
-- **Analytics**: Journey statistics and user history
-- **Google Maps Integration**: Geocoding, directions, and distance calculations
+## What is Tu-Link?
+Tu-Link is a **convoy coordination platform** that helps groups of drivers travel together in real-time convoys. Perfect for:
+- **Road Trips**: Coordinate family/friend group travel
+- **Events**: Ensure groups arrive together at weddings, conferences, or gatherings
+- **Commercial Fleets**: Manage delivery vehicles and service teams
+- **Emergency Response**: Coordinate multiple response vehicles
+
+## Core Features
+
+### 🚗 **Real-Time Convoy Tracking**
+- Live GPS tracking of all convoy participants
+- Interactive maps showing driver positions with profile photos
+- Speed and heading visualization
+- Lag detection and alerts when drivers fall behind
+
+### 📱 **Journey Management**
+- Create and invite participants to journeys
+- Role-based access (Leader/Follower permissions)
+- Journey lifecycle: Planning → Active → Completed
+- Flexible destination setting and route planning
+
+### 🗺️ **Advanced Navigation**
+- Mapbox-powered routing and navigation
+- Optimized routes with real-time traffic data
+- Turn-by-turn navigation with voice instructions
+- Alternative route suggestions and optimization
+
+### 🔔 **Smart Notifications**
+- Push notifications for journey events
+- Lag alerts when convoy members fall behind
+- Arrival notifications and journey status updates
+- Multi-device FCM token support
+
+### 📊 **Journey Analytics**
+- Post-journey performance analysis
+- Distance, speed, and efficiency metrics
+- Individual participant statistics
+- Route optimization recommendations
 
 ## Authentication
-All protected endpoints require a Bearer token in the Authorization header:
+All protected endpoints require a Bearer token:
 \`\`\`
-Authorization: Bearer <your-token-here>
+Authorization: Bearer <firebase-id-token>
 \`\`\`
 
-Get tokens via:
-1. **Register**: Create new account (returns token)
-2. **Login**: Authenticate with credentials (returns token)
-3. **Refresh**: Get new token before expiration (1 hour)
+**Token Management:**
+- **Register/Login**: Returns Firebase ID token (1 hour expiry)
+- **Refresh**: Use refresh token to get new ID token
+- **Phone Verification**: E.164 format required (+254722519316)
 
 ## Response Format
-All responses follow a standardized format:
+All responses follow Tu-Link's standardized format:
 
-**Success:**
+**Success Response:**
 \`\`\`json
 {
   "success": true,
   "statusCode": 200,
   "message": "Operation completed successfully",
-  "data": { ... }
+  "data": {
+    // Actual response data here
+  }
 }
 \`\`\`
 
-**Error:**
+**Error Response:**
 \`\`\`json
 {
   "success": false,
@@ -83,19 +116,39 @@ All responses follow a standardized format:
   "message": "Validation failed",
   "error": {
     "code": "VALIDATION_ERROR",
-    "details": [ ... ]
+    "details": ["Specific error details array"]
   }
 }
 \`\`\`
 
-## Date Format
-All timestamps use ISO 8601 format: \`2026-01-19T10:30:00.000Z\`
+## Date & Time Format
+- **ISO 8601**: \`2026-01-24T10:30:00.000Z\` (UTC timestamps)
+- **Duration**: \`HH:MM:SS\` format (e.g., "02:45:30")
+- **Coordinates**: \`[longitude, latitude]\` order (GeoJSON standard)
 
-## WebSocket
-For real-time location updates, connect to:
-- **Namespace**: \`/location\`
-- **URL**: \`ws://localhost:3000/location\`
-- **Authentication**: Pass token in connection auth object
+## WebSocket Real-Time Features
+**Connection URL**: \`ws://localhost:3000\` (Development)
+
+**Key Events:**
+- \`journey-update\`: Journey status changes
+- \`location-update\`: Real-time participant locations
+- \`participant-joined/left\`: Convoy membership changes
+- \`lag-alert\`: Driver lagging notifications
+- \`notification\`: Push notification delivery
+
+**Authentication**: Include Firebase token in connection auth object
+
+## Testing Guide
+1. **Start Here**: Use Auth endpoints to register/login
+2. **Create Journey**: Leader creates journey with destination
+3. **Invite Participants**: Send invitations to other users
+4. **Accept Invitations**: Participants accept to join convoy
+5. **Start Journey**: Leader begins convoy coordination
+6. **Location Updates**: Send GPS updates (WebSocket preferred, REST fallback)
+7. **Real-Time Tracking**: Monitor convoy progress with Maps endpoints
+8. **Journey Analytics**: Review performance after completion
+
+All request bodies are pre-filled with realistic test data for easy API testing.
       `,
     )
     .setVersion('1.0.0')
@@ -104,30 +157,33 @@ For real-time location updates, connect to:
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Enter Firebase ID token (obtained from login/register)',
+        description: 'Enter Firebase ID token (from register/login endpoint)',
       },
       'bearer',
     )
-    .addTag('auth', 'Authentication and user profile management')
-    .addTag('journeys', 'Journey creation, management, and invitations')
-    .addTag('locations', 'Location tracking and history (REST fallback)')
-    .addTag('notifications', 'Notification management and delivery')
-    .addTag('analytics', 'Journey analytics and user statistics')
-    .addTag('maps', 'Google Maps integration (geocoding, directions)')
-    .addServer('http://localhost:3000', 'Development')
-    .addServer('https://api.tulink.com', 'Production')
+    .addTag('auth', 'User authentication and profile management')
+    .addTag('journeys', 'Convoy journey creation, management, and coordination')
+    .addTag('locations', 'Real-time GPS tracking (WebSocket primary, REST fallback)')
+    .addTag('notifications', 'Push notifications and FCM token management')
+    .addTag('analytics', 'Journey performance analytics and user statistics')
+    .addTag('maps', 'Mapbox integration: routing, navigation, and geocoding')
+    .addServer('http://localhost:3000', 'Local Development')
+    .addServer('https://api.dev.tulink.xyz', 'Development Environment')
+    .addServer('https://api.staging.tulink.xyz', 'Staging Environment')
+    .addServer('https://api.tulink.xyz', 'Production')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
   console.log(`
-    🚀 Tu-link Backend is running on: http://localhost:${port}
-    📚 API Documentation: http://localhost:${port}/api
+    🚗 Tu-Link Backend is running on: http://localhost:${port}
+    📚 API Documentation: http://localhost:${port}/api/docs
     🔌 WebSocket Gateway: ws://localhost:${port}
+    🌐 Base URL: https://tulink.xyz
   `);
 }
 bootstrap();

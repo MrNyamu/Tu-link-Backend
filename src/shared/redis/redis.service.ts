@@ -36,6 +36,30 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client;
   }
 
+  // Generic get/set methods
+  async get<T>(key: string): Promise<T | null> {
+    const value = await this.client.get(key);
+    if (!value) return null;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value as any;
+    }
+  }
+
+  async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
+    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+    if (ttlSeconds) {
+      await this.client.setex(key, ttlSeconds, serialized);
+    } else {
+      await this.client.set(key, serialized);
+    }
+  }
+
+  async del(key: string): Promise<void> {
+    await this.client.del(key);
+  }
+
   // Sequence number management
   async getNextSequence(journeyId: string): Promise<number> {
     const key = `journey:${journeyId}:seq`;

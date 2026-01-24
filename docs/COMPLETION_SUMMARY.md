@@ -301,8 +301,9 @@ npm run start:dev
 
 ### 6. Access Application
 - **API**: http://localhost:3000
-- **Swagger Docs**: http://localhost:3000/api
+- **Swagger Docs**: http://localhost:3000/api/docs
 - **WebSocket**: ws://localhost:3000/location
+- **Base URL**: https://tulink.xyz
 
 ---
 

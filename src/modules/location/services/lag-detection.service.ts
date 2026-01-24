@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from '../../../shared/firebase/firebase.service';
 import { RedisService } from '../../../shared/redis/redis.service';
-import { MapsService } from '../../maps/services/maps.service';
+import { MatrixService } from '../../maps/services/matrix.service';
 import { LocationUpdate } from '../../../shared/interfaces/location.interface';
 import { Journey } from '../../../shared/interfaces/journey.interface';
 import { LagAlert } from '../../../shared/interfaces/notification.interface';
@@ -15,7 +15,7 @@ export class LagDetectionService {
   constructor(
     private firebaseService: FirebaseService,
     private redisService: RedisService,
-    private mapsService: MapsService,
+    private matrixService: MatrixService,
     private configService: ConfigService,
   ) {}
 
