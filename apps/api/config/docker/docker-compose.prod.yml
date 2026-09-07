@@ -20,6 +20,8 @@ services:
       - FIREBASE_PRIVATE_KEY=${FIREBASE_PRIVATE_KEY}
       # Google Maps Configuration
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      # Server-side routing (the reverse proxy only accepts this VPS)
+      - VALHALLA_URL=${VALHALLA_URL}
       # Logging Configuration
       - LOG_LEVEL=info
       # WebSocket Configuration
