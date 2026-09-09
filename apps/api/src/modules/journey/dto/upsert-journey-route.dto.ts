@@ -4,7 +4,9 @@ import {
   IsInt,
   IsLatitude,
   IsLongitude,
+  IsOptional,
   IsUUID,
+  Max,
   Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -26,6 +28,21 @@ export class UpsertJourneyRouteDto {
   @Type(() => Number)
   @IsLongitude()
   originLng: number;
+
+  @ApiProperty({
+    description:
+      'Zero-based route option selected by the leader (primary route is 0)',
+    minimum: 0,
+    maximum: 2,
+    required: false,
+    default: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(2)
+  routeIndex?: number;
 
   @ApiProperty({
     description: 'Current route version known by the leader; zero initially',
