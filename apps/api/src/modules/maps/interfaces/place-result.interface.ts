@@ -37,4 +37,6 @@ export class RouteResult {
   distanceMetres: number;
   durationSeconds: number;
   steps: RouteStep[];
+  /** Other viable paths returned by Valhalla, in the same stable shape. */
+  alternates?: RouteResult[];
 }

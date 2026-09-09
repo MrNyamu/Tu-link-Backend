@@ -156,11 +156,65 @@ describe('MapsController (e2e)', () => {
     destLng: 36.85,
   };
 
+  it('POST /maps/route returns a Valhalla route with alternatives', async () => {
+    const trip = (length: number) => ({
+      summary: { length, time: 700 },
+      legs: [
+        {
+          shape: '~~bmA_aifeA~`f@_ry@',
+          maneuvers: [
+            {
+              type: 10,
+              instruction: 'Turn right',
+              length: 0.5,
+              begin_shape_index: 0,
+              end_shape_index: 1,
+            },
+          ],
+        },
+      ],
+    });
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            trip: trip(9.5),
+            alternates: [{ trip: trip(10.2) }],
+          }),
+        ),
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/maps/route')
+      .send(routeBody);
+
+    expect(res.status).toBe(200);
+    const route = (
+      res.body as SuccessBody<{
+        distanceMetres: number;
+        alternates: unknown[];
+      }>
+    ).data;
+    expect(route.distanceMetres).toBe(9500);
+    expect(route.alternates).toHaveLength(1);
+  });
+
+  it('POST /maps/route rejects coordinates outside valid ranges', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/maps/route')
+      .send({ ...routeBody, originLat: 91 });
+
+    expect(res.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('MAPS-03: POST /maps/route returns 502 UPSTREAM_DIRECTIONS_ERROR on upstream non-2xx', async () => {
     fetchSpy.mockResolvedValue({
       ok: false,
       status: 503,
-      text: () => Promise.resolve('mapbox down'),
+      text: () => Promise.resolve('valhalla down'),
     });
 
     const res = await request(app.getHttpServer())
@@ -188,9 +242,12 @@ describe('MapsController (e2e)', () => {
 
   it('D-03 regression: POST /maps/route returns 200 with null data when no route found', async () => {
     fetchSpy.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve({ routes: [] }),
+      ok: false,
+      status: 400,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ error: 'No path could be found', error_code: 442 }),
+        ),
     });
 
     const res = await request(app.getHttpServer())
