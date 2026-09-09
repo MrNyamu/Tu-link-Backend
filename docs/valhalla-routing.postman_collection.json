@@ -1,0 +1,313 @@
+{
+  "info": {
+    "_postman_id": "4ab7d8f7-c05b-4dba-ae66-4e949953af8e",
+    "name": "TuLink — Valhalla Routing",
+    "description": "Requests for testing TuLink's Valhalla-backed routing API. Set backendBaseUrl and firebaseIdToken in the collection variables before running backend requests. The direct Valhalla proxy is restricted to the backend VPS, so direct requests from a developer machine are expected to return HTTP 403.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{firebaseIdToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "backendBaseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "firebaseIdToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "valhallaBaseUrl",
+      "value": "https://valhalla.tulink.xyz",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Backend routing API",
+      "description": "Authenticated requests through the TuLink backend. These are the requests the Flutter application uses.",
+      "item": [
+        {
+          "name": "Nairobi CBD to Westlands — alternatives",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originLat\": -1.286389,\n  \"originLng\": 36.817223,\n  \"destLat\": -1.2676,\n  \"destLng\": 36.8108\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/maps/route",
+              "host": ["{{backendBaseUrl}}"],
+              "path": ["maps", "route"]
+            },
+            "description": "Short urban route intended to exercise alternate-route generation. Valhalla may legally return fewer alternatives than requested."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Contains a normalized route', () => {",
+                  "  pm.expect(body.data.coordinates).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(body.data.distanceMetres).to.be.a('number').above(0);",
+                  "  pm.expect(body.data.durationSeconds).to.be.a('number').above(0);",
+                  "  pm.expect(body.data.steps).to.be.an('array');",
+                  "  pm.expect(body.data.alternates).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nairobi to Naivasha — intercity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originLat\": -1.286389,\n  \"originLng\": 36.817223,\n  \"destLat\": -0.7172,\n  \"destLng\": 36.431\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/maps/route",
+              "host": ["{{backendBaseUrl}}"],
+              "path": ["maps", "route"]
+            },
+            "description": "Longer Kenyan route for checking route geometry, distance, duration and maneuvers."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const route = pm.response.json().data;",
+                  "pm.test('Returns an intercity route', () => {",
+                  "  pm.expect(route.coordinates).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(route.distanceMetres).to.be.above(50000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nairobi to Arusha — cross-border coverage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originLat\": -1.286389,\n  \"originLng\": 36.817223,\n  \"destLat\": -3.3869,\n  \"destLng\": 36.683\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/maps/route",
+              "host": ["{{backendBaseUrl}}"],
+              "path": ["maps", "route"]
+            },
+            "description": "Checks that the Valhalla tile set connects Kenya and Tanzania."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const route = pm.response.json().data;",
+                  "pm.test('Returns a cross-border route', () => {",
+                  "  pm.expect(route).to.be.an('object');",
+                  "  pm.expect(route.coordinates).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "No routable road nearby — null route",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originLat\": -1.286389,\n  \"originLng\": 36.817223,\n  \"destLat\": -4.5,\n  \"destLng\": 39.8\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/maps/route",
+              "host": ["{{backendBaseUrl}}"],
+              "path": ["maps", "route"]
+            },
+            "description": "Destination is offshore. Expected response is HTTP 200 with data set to null when Valhalla reports no nearby road or no path."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No route is represented as null', () => {",
+                  "  pm.expect(pm.response.json().data).to.equal(null);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid latitude — validation error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originLat\": 91,\n  \"originLng\": 36.817223,\n  \"destLat\": -1.292066,\n  \"destLng\": 36.821946\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/maps/route",
+              "host": ["{{backendBaseUrl}}"],
+              "path": ["maps", "route"]
+            },
+            "description": "Confirms that impossible coordinates are rejected by TuLink before contacting Valhalla."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Direct Valhalla proxy — infrastructure checks",
+      "description": "The proxy permits only the backend VPS IP. From Postman on another computer, both requests should return HTTP 403. Run them from the backend VPS only when validating upstream health or raw Valhalla behavior.",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Status — expected 403 outside backend VPS",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{valhallaBaseUrl}}/status",
+              "host": ["{{valhallaBaseUrl}}"],
+              "path": ["status"]
+            }
+          }
+        },
+        {
+          "name": "Raw route — expected 403 outside backend VPS",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locations\": [\n    { \"lat\": -1.286389, \"lon\": 36.817223 },\n    { \"lat\": -1.2676, \"lon\": 36.8108 }\n  ],\n  \"costing\": \"auto\",\n  \"units\": \"kilometers\",\n  \"alternates\": 2,\n  \"directions_options\": {\n    \"units\": \"kilometers\",\n    \"language\": \"en-US\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{valhallaBaseUrl}}/route",
+              "host": ["{{valhallaBaseUrl}}"],
+              "path": ["route"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

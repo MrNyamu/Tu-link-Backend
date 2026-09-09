@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Client } from '@googlemaps/google-maps-services-js';
 import { RedisService } from '../../../shared/redis/redis.service';
 import { PlaceResult, RouteResult } from '../interfaces/place-result.interface';
+import { ValhallaRoutingService } from './valhalla-routing.service';
 
 // Google Places API (New) response types - internal use only
 interface GoogleNewPlacesResponse {
@@ -31,6 +32,7 @@ export class MapsService {
   constructor(
     private configService: ConfigService,
     private redisService: RedisService,
+    private readonly valhallaRoutingService: ValhallaRoutingService,
   ) {
     this.client = new Client({});
     this.apiKey = this.configService.getOrThrow<string>('maps.apiKey');
@@ -224,12 +226,7 @@ export class MapsService {
     return result ? result.duration : null;
   }
 
-  /**
-   * Get a road-following route from Mapbox Directions API.
-   * Uses driving-traffic profile for traffic-aware routing.
-   * Result is cached in Redis for 5 minutes.
-   * Returns null on API error or no route found — never caches null.
-   */
+  /** Get a Valhalla road route and its available alternatives. */
   async getRoute(
     originLat: number,
     originLng: number,
@@ -240,7 +237,7 @@ export class MapsService {
     // points roughly a kilometre apart and can return a route that begins on a
     // different road; six decimal places preserves sub-metre GPS identity.
     const cacheKey =
-      `maps:route:${originLat.toFixed(6)}:${originLng.toFixed(6)}` +
+      `maps:route:valhalla:v1:${originLat.toFixed(6)}:${originLng.toFixed(6)}` +
       `:${destLat.toFixed(6)}:${destLng.toFixed(6)}`;
 
     const redisClient = this.redisService.getClient();
@@ -251,90 +248,25 @@ export class MapsService {
       return JSON.parse(cached) as RouteResult;
     }
 
-    this.logger.debug(`[Maps] Route cache miss — calling Mapbox: ${cacheKey}`);
-
-    const token = this.configService.getOrThrow<string>('maps.mapboxToken');
-
-    // Mapbox Directions API: coordinates are lng,lat order
-    const url =
-      `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/` +
-      `${originLng},${originLat};${destLng},${destLat}` +
-      `?geometries=geojson&overview=full&steps=true` +
-      `&access_token=${token}`;
-
-    const timeoutMs = this.configService.get<number>(
-      'maps.requestTimeoutMs',
-      8000,
+    this.logger.debug(
+      `[Maps] Route cache miss — calling Valhalla: ${cacheKey}`,
     );
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-    try {
-      const response = await fetch(url, { signal: controller.signal });
+    const result = await this.valhallaRoutingService.getRoute(
+      originLat,
+      originLng,
+      destLat,
+      destLng,
+    );
+    if (!result) return null;
 
-      if (!response.ok) {
-        const body = await response.text();
-        this.logger.error(
-          `Mapbox Directions API error: ${response.status} — ${body}`,
-        );
-        throw new BadGatewayException(
-          'Mapbox Directions API request failed',
-          'UPSTREAM_DIRECTIONS_ERROR',
-        );
-      }
-
-      const data = (await response.json()) as {
-        routes?: Array<{
-          distance: number;
-          duration: number;
-          geometry: { coordinates: number[][] };
-          legs: Array<{
-            steps: Array<{
-              distance: number;
-              maneuver: { instruction: string; type: string };
-            }>;
-          }>;
-        }>;
-      };
-
-      if (!data.routes?.length) {
-        this.logger.warn(
-          `[Maps] No routes returned from Mapbox for: ${cacheKey}`,
-        );
-        return null; // Do not cache empty result
-      }
-
-      const route = data.routes[0];
-      const result: RouteResult = {
-        coordinates: route.geometry.coordinates, // already [[lng,lat],...]
-        distanceMetres: route.distance,
-        durationSeconds: route.duration,
-        steps: (route.legs[0]?.steps ?? []).map((step) => ({
-          instruction: step.maneuver.instruction,
-          distanceMetres: step.distance,
-          maneuver: step.maneuver.type,
-        })),
-      };
-
-      // Cache for 5 minutes — traffic updates but roads don't change
-      await redisClient.setex(cacheKey, 300, JSON.stringify(result));
-      this.logger.debug(
-        `[Maps] Route cached: ${result.distanceMetres}m, ` +
-          `${result.durationSeconds}s, ${result.steps.length} steps`,
-      );
-
-      return result;
-    } catch (error) {
-      if (error instanceof BadGatewayException) {
-        throw error;
-      }
-      this.logger.error('Error calling Mapbox Directions API:', error);
-      throw new ServiceUnavailableException(
-        'Mapbox Directions API is unreachable',
-        'UPSTREAM_UNAVAILABLE',
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
+    // Valhalla currently uses static OSM speeds, so a short cache protects the
+    // service without changing the user's expectation of a fresh route.
+    await redisClient.setex(cacheKey, 300, JSON.stringify(result));
+    this.logger.debug(
+      `[Maps] Route cached: ${result.distanceMetres}m, ` +
+        `${result.durationSeconds}s, ${result.alternates?.length ?? 0} alternates`,
+    );
+    return result;
   }
 }

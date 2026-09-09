@@ -106,14 +106,22 @@ export class JourneyRouteService {
       throw new BadGatewayException('No road route was found');
     }
 
+    const routeIndex = dto.routeIndex ?? 0;
+    const selectedRoute = [route, ...(route.alternates ?? [])][routeIndex];
+    if (!selectedRoute) {
+      throw new BadRequestException(
+        `Route option ${routeIndex} is not available`,
+      );
+    }
+
     try {
       const saved = await this.routeRepository.replaceCurrent({
         journeyId,
         baseVersion: dto.baseVersion,
-        coordinates: route.coordinates,
-        distanceMetres: route.distanceMetres,
-        durationSeconds: route.durationSeconds,
-        steps: route.steps,
+        coordinates: selectedRoute.coordinates,
+        distanceMetres: selectedRoute.distanceMetres,
+        durationSeconds: selectedRoute.durationSeconds,
+        steps: selectedRoute.steps,
         origin: { latitude: dto.originLat, longitude: dto.originLng },
         destination: journey.destination,
         reason: dto.reason,

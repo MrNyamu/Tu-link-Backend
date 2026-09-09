@@ -152,6 +152,53 @@ describe('JourneyRouteService', () => {
     );
   });
 
+  it('persists the route option selected by the leader', async () => {
+    const alternate = {
+      coordinates: [
+        [36.7, -1.2],
+        [36.75, -1.24],
+        [36.8, -1.3],
+      ],
+      distanceMetres: 16000,
+      durationSeconds: 1650,
+      steps: [
+        {
+          instruction: 'Take the alternate road',
+          distanceMetres: 16000,
+          maneuver: 'right',
+        },
+      ],
+    };
+    mapsService.getRoute.mockResolvedValue({
+      ...calculatedRoute,
+      alternates: [alternate],
+    });
+
+    await service.replaceCurrent(journeyId, leaderId, {
+      ...dto,
+      routeIndex: 1,
+    });
+
+    expect(routeRepository.replaceCurrent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        coordinates: alternate.coordinates,
+        distanceMetres: alternate.distanceMetres,
+        durationSeconds: alternate.durationSeconds,
+        steps: alternate.steps,
+      }),
+    );
+  });
+
+  it('rejects a route option that Valhalla did not return', async () => {
+    await expect(
+      service.replaceCurrent(journeyId, leaderId, {
+        ...dto,
+        routeIndex: 2,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(routeRepository.replaceCurrent).not.toHaveBeenCalled();
+  });
+
   it('returns an idempotent result without recalculating the route', async () => {
     routeRepository.findByRequestId.mockResolvedValue(savedRoute);
 

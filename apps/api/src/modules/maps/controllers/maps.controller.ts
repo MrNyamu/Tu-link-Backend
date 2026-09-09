@@ -58,10 +58,10 @@ export class MapsController {
   @Post('route')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get road-following route from Mapbox Directions API',
+    summary: 'Get road-following routes from Valhalla',
     description:
       'Returns GeoJSON coordinates, distance, duration and step-by-step ' +
-      'instructions for a driving route. Results cached 5 min in Redis.',
+      'instructions and available alternatives. Results cached 5 min in Redis.',
   })
   @ApiResponse({ status: 200, description: 'Route calculated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
