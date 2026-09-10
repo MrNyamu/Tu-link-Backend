@@ -64,6 +64,29 @@ describe('ValhallaRoutingService', () => {
     expect(result?.alternates?.[0].distanceMetres).toBe(10200);
   });
 
+  it('keeps intermediate route points as through locations', async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ trip: trip(9.5, 700, 10) })),
+    } as Response);
+
+    await service.getRouteThrough([
+      { latitude: -1.28, longitude: 36.82 },
+      { latitude: -1.29, longitude: 36.83 },
+      { latitude: -1.3, longitude: 36.85 },
+    ]);
+
+    const request = JSON.parse(
+      (fetchSpy.mock.calls[0][1] as RequestInit).body as string,
+    ) as { locations: Array<{ type: string }> };
+    expect(request.locations.map(({ type }) => type)).toEqual([
+      'break',
+      'through',
+      'break',
+    ]);
+  });
+
   it('returns null when Valhalla cannot find a path', async () => {
     fetchSpy.mockResolvedValue({
       ok: false,

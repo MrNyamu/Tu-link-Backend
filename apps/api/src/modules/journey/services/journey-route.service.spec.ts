@@ -63,6 +63,7 @@ describe('JourneyRouteService', () => {
   let mapsService: { getRoute: jest.Mock };
   let locationGateway: { broadcastRouteUpdated: jest.Mock };
   let logger: { error: jest.Mock };
+  let savedRoutesService: { findAvailableForJourney: jest.Mock };
 
   beforeEach(() => {
     routeRepository = {
@@ -88,6 +89,7 @@ describe('JourneyRouteService', () => {
       broadcastRouteUpdated: jest.fn().mockResolvedValue(undefined),
     };
     logger = { error: jest.fn() };
+    savedRoutesService = { findAvailableForJourney: jest.fn() };
 
     service = new JourneyRouteService(
       routeRepository as never,
@@ -96,6 +98,7 @@ describe('JourneyRouteService', () => {
       mapsService as never,
       locationGateway as never,
       logger as never,
+      savedRoutesService as never,
     );
   });
 
@@ -320,5 +323,88 @@ describe('JourneyRouteService', () => {
       'JourneyRouteService',
       { journeyId, routeVersion: 1 },
     );
+  });
+
+  it('lets the leader install an organization saved route', async () => {
+    savedRoutesService.findAvailableForJourney.mockResolvedValue({
+      organizationId: 'org-1',
+      geometry: calculatedRoute.coordinates,
+      distanceMetres: calculatedRoute.distanceMetres,
+      durationSeconds: calculatedRoute.durationSeconds,
+      steps: calculatedRoute.steps,
+      waypoints: [
+        { latitude: dto.originLat, longitude: dto.originLng },
+        destination,
+      ],
+    });
+    journeyRepository.findById.mockResolvedValue({
+      id: journeyId,
+      leaderId,
+      status: 'ACTIVE',
+      destination,
+      organizationId: 'org-1',
+    });
+
+    await expect(
+      service.replaceFromSavedRoute(
+        journeyId,
+        '44444444-4444-4444-8444-444444444444',
+        leaderId,
+        { baseVersion: 0, requestId },
+      ),
+    ).resolves.toBe(savedRoute);
+    expect(routeRepository.replaceCurrent).toHaveBeenCalledWith({
+      journeyId,
+      baseVersion: 0,
+      ...calculatedRoute,
+      origin: { latitude: dto.originLat, longitude: dto.originLng },
+      destination,
+      reason: 'INITIAL',
+      createdBy: leaderId,
+      requestId,
+    });
+  });
+
+  it('does not let a follower install a saved route', async () => {
+    await expect(
+      service.replaceFromSavedRoute(
+        journeyId,
+        '44444444-4444-4444-8444-444444444444',
+        'follower-1',
+        { baseVersion: 0, requestId },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(savedRoutesService.findAvailableForJourney).not.toHaveBeenCalled();
+  });
+
+  it('rejects a saved route whose destination differs from the journey', async () => {
+    journeyRepository.findById.mockResolvedValue({
+      id: journeyId,
+      leaderId,
+      status: 'ACTIVE',
+      destination,
+      organizationId: 'org-1',
+    });
+    savedRoutesService.findAvailableForJourney.mockResolvedValue({
+      organizationId: 'org-1',
+      geometry: calculatedRoute.coordinates,
+      distanceMetres: calculatedRoute.distanceMetres,
+      durationSeconds: calculatedRoute.durationSeconds,
+      steps: calculatedRoute.steps,
+      waypoints: [
+        { latitude: dto.originLat, longitude: dto.originLng },
+        { latitude: -2, longitude: 37 },
+      ],
+    });
+
+    await expect(
+      service.replaceFromSavedRoute(
+        journeyId,
+        '44444444-4444-4444-8444-444444444444',
+        leaderId,
+        { baseVersion: 0, requestId },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(routeRepository.replaceCurrent).not.toHaveBeenCalled();
   });
 });

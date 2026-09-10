@@ -269,4 +269,25 @@ export class MapsService {
     );
     return result;
   }
+
+  /** Route through ordered stops while keeping Valhalla alternatives. */
+  async getRouteThrough(
+    points: Array<{ latitude: number; longitude: number }>,
+  ): Promise<RouteResult | null> {
+    const identity = points
+      .map(
+        ({ latitude, longitude }) =>
+          `${latitude.toFixed(6)},${longitude.toFixed(6)}`,
+      )
+      .join(':');
+    const cacheKey = `maps:route:valhalla:v2:${identity}`;
+    const redisClient = this.redisService.getClient();
+    const cached = await redisClient.get(cacheKey);
+    if (cached) return JSON.parse(cached) as RouteResult;
+
+    const result = await this.valhallaRoutingService.getRouteThrough(points);
+    if (!result) return null;
+    await redisClient.setex(cacheKey, 300, JSON.stringify(result));
+    return result;
+  }
 }

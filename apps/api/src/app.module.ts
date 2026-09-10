@@ -31,6 +31,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { OperatorModule } from './modules/operator/operator.module';
 import { ClerkWebhooksModule } from './modules/clerk-webhooks/clerk-webhooks.module';
+import { SavedRoutesModule } from './modules/saved-routes/saved-routes.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { ClerkWebhooksModule } from './modules/clerk-webhooks/clerk-webhooks.mod
     AnalyticsModule,
     OperatorModule,
     ClerkWebhooksModule,
+    SavedRoutesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
