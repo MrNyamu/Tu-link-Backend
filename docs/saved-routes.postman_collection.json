@@ -1,0 +1,179 @@
+{
+  "info": {
+    "_postman_id": "f97e41fc-7ddf-4a64-a384-a3a2bbd92e64",
+    "name": "TuLink — Saved Routes",
+    "description": "Create, edit, reuse, and archive computed or recorded organization routes. Set the collection variables before running requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "backendBaseUrl", "value": "http://localhost:3000" },
+    { "key": "firebaseIdToken", "value": "" },
+    { "key": "clerkSessionToken", "value": "" },
+    { "key": "savedRouteId", "value": "" },
+    { "key": "journeyId", "value": "" },
+    { "key": "editorUserId", "value": "" },
+    { "key": "routeVersion", "value": "1" },
+    { "key": "journeyRouteVersion", "value": "0" }
+  ],
+  "item": [
+    {
+      "name": "Mobile app (Firebase)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{firebaseIdToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Preview route through waypoints",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waypoints\": [\n    { \"latitude\": -1.286389, \"longitude\": 36.817223 },\n    { \"latitude\": -1.2921, \"longitude\": 36.8219 },\n    { \"latitude\": -1.3005, \"longitude\": 36.8297 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/maps/route/through"
+          }
+        },
+        {
+          "name": "List saved routes",
+          "request": { "method": "GET", "url": "{{backendBaseUrl}}/saved-routes" }
+        },
+        {
+          "name": "Create computed route",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Airstrip transfer\",\n  \"source\": \"COMPUTED\",\n  \"routeIndex\": 0,\n  \"waypoints\": [\n    { \"latitude\": -1.286389, \"longitude\": 36.817223, \"name\": \"Gate\" },\n    { \"latitude\": -1.2921, \"longitude\": 36.8219, \"name\": \"Checkpoint\" },\n    { \"latitude\": -1.3005, \"longitude\": 36.8297, \"name\": \"Airstrip\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/saved-routes"
+          }
+        },
+        {
+          "name": "Create recorded route",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Private conservancy track\",\n  \"source\": \"RECORDED\",\n  \"recordedDurationSeconds\": 180,\n  \"waypoints\": [\n    { \"latitude\": -0.101, \"longitude\": 36.9, \"name\": \"Start\" },\n    { \"latitude\": -0.105, \"longitude\": 36.907, \"name\": \"Finish\" }\n  ],\n  \"geometry\": [\n    { \"latitude\": -0.101, \"longitude\": 36.9 },\n    { \"latitude\": -0.103, \"longitude\": 36.904 },\n    { \"latitude\": -0.105, \"longitude\": 36.907 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/saved-routes"
+          }
+        },
+        {
+          "name": "Get saved route",
+          "request": { "method": "GET", "url": "{{backendBaseUrl}}/saved-routes/{{savedRouteId}}" }
+        },
+        {
+          "name": "Update saved route",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Airstrip transfer — revised\",\n  \"source\": \"COMPUTED\",\n  \"expectedVersion\": {{routeVersion}},\n  \"routeIndex\": 0,\n  \"waypoints\": [\n    { \"latitude\": -1.286389, \"longitude\": 36.817223, \"name\": \"Gate\" },\n    { \"latitude\": -1.3005, \"longitude\": 36.8297, \"name\": \"Airstrip\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/saved-routes/{{savedRouteId}}"
+          }
+        },
+        {
+          "name": "Replace permitted editors",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userIds\": [\"{{editorUserId}}\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/saved-routes/{{savedRouteId}}/editors"
+          }
+        },
+        {
+          "name": "Apply saved route to active journey",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseVersion\": {{journeyRouteVersion}},\n  \"requestId\": \"{{$guid}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/journeys/{{journeyId}}/route/saved/{{savedRouteId}}"
+          }
+        },
+        {
+          "name": "Archive saved route",
+          "request": { "method": "DELETE", "url": "{{backendBaseUrl}}/saved-routes/{{savedRouteId}}" }
+        },
+        {
+          "name": "Get user preferences",
+          "request": { "method": "GET", "url": "{{backendBaseUrl}}/users/me/preferences" }
+        },
+        {
+          "name": "Update user preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followLeaderByDefault\": true,\n  \"voiceNavigationEnabled\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/users/me/preferences"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard (Clerk)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{clerkSessionToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "List organization routes",
+          "request": { "method": "GET", "url": "{{backendBaseUrl}}/operator/saved-routes" }
+        },
+        {
+          "name": "Create organization route",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Operator route\",\n  \"source\": \"COMPUTED\",\n  \"waypoints\": [\n    { \"latitude\": -1.286389, \"longitude\": 36.817223 },\n    { \"latitude\": -1.3005, \"longitude\": 36.8297 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/operator/saved-routes"
+          }
+        },
+        {
+          "name": "Update organization route",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Operator route — revised\",\n  \"source\": \"COMPUTED\",\n  \"expectedVersion\": {{routeVersion}},\n  \"waypoints\": [\n    { \"latitude\": -1.286389, \"longitude\": 36.817223 },\n    { \"latitude\": -1.3005, \"longitude\": 36.8297 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/operator/saved-routes/{{savedRouteId}}"
+          }
+        },
+        {
+          "name": "Archive organization route",
+          "request": { "method": "DELETE", "url": "{{backendBaseUrl}}/operator/saved-routes/{{savedRouteId}}" }
+        }
+      ]
+    }
+  ]
+}

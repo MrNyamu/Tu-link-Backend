@@ -47,6 +47,13 @@ export const journeyRouteReasonEnum = pgEnum('journey_route_reason', [
   'MANUAL',
 ]);
 
+// How a reusable organization route was produced.
+export const savedRouteSourceEnum = pgEnum('saved_route_source', [
+  'COMPUTED',
+  'RECORDED',
+  'MANUAL',
+]);
+
 // src/types/notification.type.ts (NotificationType)
 // NOTE: includes PARTICIPANT_LEFT, which the plan's §4 DDL omitted. The TS
 // type is the source of truth, so it is included here.

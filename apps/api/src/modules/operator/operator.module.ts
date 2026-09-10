@@ -15,5 +15,6 @@ import { LocationModule } from '../location/location.module';
     ClerkOrganizationsRepository,
     OperatorAccessService,
   ],
+  exports: [ClerkAuthGuard, OperatorAccessService],
 })
 export class OperatorModule {}

@@ -12,6 +12,7 @@ import { NotificationRepository } from './repositories/notification.repository';
 import { OrganizationAccessRepository } from './repositories/organization-access.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
 import { UsersRepository } from './repositories/users.repository';
+import { SavedRouteRepository } from './repositories/saved-route.repository';
 
 const repositories = [
   UsersRepository,
@@ -24,6 +25,7 @@ const repositories = [
   FcmTokenRepository,
   AnalyticsRepository,
   OrganizationAccessRepository,
+  SavedRouteRepository,
 ];
 
 @Global()

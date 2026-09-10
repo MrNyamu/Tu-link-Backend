@@ -20,6 +20,8 @@ export interface UpdateUserInput {
   phoneNumber?: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
+  followLeaderByDefault?: boolean;
+  voiceNavigationEnabled?: boolean;
 }
 
 export interface UserSearchResult {

@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  ParseUUIDPipe,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -26,6 +27,7 @@ import { InviteParticipantByIdDto } from './dto/invite-participant.dto';
 import { UpsertJourneyRouteDto } from './dto/upsert-journey-route.dto';
 import { JourneyRouteService } from './services/journey-route.service';
 import { JourneyLiveService } from './services/journey-live.service';
+import { ApplySavedRouteDto } from '../saved-routes/dto/saved-route.dto';
 import { FirebaseAuthGuard } from '../../common/guards/firebase-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -160,6 +162,23 @@ export class JourneyController {
     @Body() dto: UpsertJourneyRouteDto,
   ) {
     return this.journeyRouteService.replaceCurrent(id, userId, dto);
+  }
+
+  @Post(':id/route/saved/:savedRouteId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Apply a saved route to the active journey' })
+  async applySavedRoute(
+    @Param('id') id: string,
+    @Param('savedRouteId', new ParseUUIDPipe()) savedRouteId: string,
+    @CurrentUser('uid') userId: string,
+    @Body() dto: ApplySavedRouteDto,
+  ) {
+    return this.journeyRouteService.replaceFromSavedRoute(
+      id,
+      savedRouteId,
+      userId,
+      dto,
+    );
   }
 
   @Put(':id')

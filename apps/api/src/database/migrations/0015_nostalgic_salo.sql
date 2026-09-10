@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "follow_leader_by_default" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN "voice_navigation_enabled" boolean DEFAULT true NOT NULL;

@@ -47,6 +47,15 @@ export class ValhallaRoutingService {
     destLat: number,
     destLng: number,
   ): Promise<RouteResult | null> {
+    return this.getRouteThrough([
+      { latitude: originLat, longitude: originLng },
+      { latitude: destLat, longitude: destLng },
+    ]);
+  }
+
+  async getRouteThrough(
+    points: Array<{ latitude: number; longitude: number }>,
+  ): Promise<RouteResult | null> {
     const baseUrl = this.configService
       .get<string>('maps.valhallaUrl', 'http://localhost:8002')
       .replace(/\/$/, '');
@@ -62,10 +71,11 @@ export class ValhallaRoutingService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          locations: [
-            { lat: originLat, lon: originLng },
-            { lat: destLat, lon: destLng },
-          ],
+          locations: points.map((point, index) => ({
+            lat: point.latitude,
+            lon: point.longitude,
+            type: index > 0 && index < points.length - 1 ? 'through' : 'break',
+          })),
           costing: 'auto',
           units: 'kilometers',
           alternates: 2,
