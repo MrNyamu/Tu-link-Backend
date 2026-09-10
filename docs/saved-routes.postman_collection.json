@@ -112,6 +112,23 @@
         {
           "name": "Archive saved route",
           "request": { "method": "DELETE", "url": "{{backendBaseUrl}}/saved-routes/{{savedRouteId}}" }
+        },
+        {
+          "name": "Get user preferences",
+          "request": { "method": "GET", "url": "{{backendBaseUrl}}/users/me/preferences" }
+        },
+        {
+          "name": "Update user preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followLeaderByDefault\": true,\n  \"voiceNavigationEnabled\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{backendBaseUrl}}/users/me/preferences"
+          }
         }
       ]
     },

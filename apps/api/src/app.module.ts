@@ -32,6 +32,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { OperatorModule } from './modules/operator/operator.module';
 import { ClerkWebhooksModule } from './modules/clerk-webhooks/clerk-webhooks.module';
 import { SavedRoutesModule } from './modules/saved-routes/saved-routes.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { SavedRoutesModule } from './modules/saved-routes/saved-routes.module';
     OperatorModule,
     ClerkWebhooksModule,
     SavedRoutesModule,
+    UserPreferencesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
