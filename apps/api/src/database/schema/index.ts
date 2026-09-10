@@ -3,6 +3,7 @@ export * from './users';
 export * from './organizations';
 export * from './journeys';
 export * from './journey-routes';
+export * from './saved-routes';
 export * from './participants';
 export * from './locations';
 export * from './lag-alerts';

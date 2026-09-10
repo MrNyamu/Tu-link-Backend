@@ -100,6 +100,24 @@ export class OrganizationAccessRepository {
     return membership?.organizationId ?? null;
   }
 
+  async findActiveTeamMemberIds(
+    organizationId: string,
+    userIds: string[],
+  ): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    const rows = await this.db
+      .select({ userId: organizationTeamMembers.userId })
+      .from(organizationTeamMembers)
+      .where(
+        and(
+          eq(organizationTeamMembers.organizationId, organizationId),
+          eq(organizationTeamMembers.status, 'active'),
+          inArray(organizationTeamMembers.userId, userIds),
+        ),
+      );
+    return rows.map(({ userId }) => userId);
+  }
+
   async upsertTeamMember(
     organizationId: string,
     userId: string,

@@ -14,6 +14,7 @@ import { MapsModule } from '../maps/maps.module';
 import { JourneyRouteService } from './services/journey-route.service';
 import { JourneyLiveService } from './services/journey-live.service';
 import appConfig from '../../config/app.config';
+import { SavedRoutesModule } from '../saved-routes/saved-routes.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import appConfig from '../../config/app.config';
     AnalyticsModule,
     forwardRef(() => LocationModule),
     MapsModule,
+    SavedRoutesModule,
   ],
   controllers: [JourneyController],
   providers: [

@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { FirebaseAuthGuard } from '../../../common/guards/firebase-auth.guard';
 import { MapsService } from '../services/maps.service';
-import { SearchPlacesDto, GetRouteDto } from '../dto';
+import { SearchPlacesDto, GetRouteDto, GetRouteThroughDto } from '../dto';
 import {
   SearchPlacesResponse,
   RouteResult,
@@ -76,5 +76,15 @@ export class MapsController {
       routeDto.destLat,
       routeDto.destLng,
     );
+  }
+
+  @Post('route/through')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get Valhalla routes through ordered waypoints' })
+  async getRouteThrough(
+    @Body(new ValidationPipe({ transform: true, whitelist: true }))
+    dto: GetRouteThroughDto,
+  ): Promise<RouteResult | null> {
+    return this.mapsService.getRouteThrough(dto.waypoints);
   }
 }

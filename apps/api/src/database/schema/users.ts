@@ -20,6 +20,12 @@ export const users = pgTable(
     phoneNumber: text('phone_number'),
     emailVerified: boolean('email_verified').notNull().default(false),
     phoneVerified: boolean('phone_verified').notNull().default(false),
+    followLeaderByDefault: boolean('follow_leader_by_default')
+      .notNull()
+      .default(true),
+    voiceNavigationEnabled: boolean('voice_navigation_enabled')
+      .notNull()
+      .default(true),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
